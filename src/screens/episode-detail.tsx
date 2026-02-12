@@ -47,9 +47,9 @@ export function EpisodeDetailScreen() {
 
 	useInput((input, key) => {
 		if (!episode) return;
-		if (input === 'j' || key.downArrow) {
+		if (input === 'l' || key.rightArrow) {
 			setActiveSection((i) => Math.min(i + 1, sections.length - 1));
-		} else if (input === 'k' || key.upArrow) {
+		} else if (input === 'h' || key.leftArrow) {
 			setActiveSection((i) => Math.max(i - 1, 0));
 		} else if (input === 't' && episode.hasTranscript) {
 			navigate('transcript', { slug, title: episode.title });
