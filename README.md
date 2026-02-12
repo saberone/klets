@@ -20,6 +20,10 @@ Terminal UI for the [CodeKlets](https://codeklets.nl) podcast. Browse episodes, 
 
 <img src="assets/search.gif" alt="Full-text search with results" width="600">
 
+### Transcript
+
+<img src="assets/transcript.gif" alt="Episode transcript with speaker segments" width="600">
+
 ## Installation
 
 ```bash

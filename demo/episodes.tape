@@ -9,7 +9,7 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
 
-Type "node dist/cli.js"
+Type "klets"
 Enter
 Sleep 3s
 
