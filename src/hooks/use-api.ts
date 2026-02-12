@@ -55,7 +55,7 @@ export function useApi<T>(
 		} else if (data === null) {
 			fetchData();
 		}
-	}, [cacheKey]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [cacheKey]);
 
 	return { data, loading, error, refetch: fetchData };
 }
