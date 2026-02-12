@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import Gradient from 'ink-gradient';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { ScreenContainer } from '../components/screen-container.js';
@@ -67,8 +68,9 @@ export function HomeScreen() {
 	return (
 		<ScreenContainer>
 			<Box flexDirection="column" alignItems="center" paddingY={1}>
-				<Text color={colors.cyan}>{BANNER_CODE}</Text>
-				<Text color={colors.purple}>{BANNER_KLETS}</Text>
+				<Gradient colors={[colors.cyan, colors.purple]}>
+					{BANNER_CODE + '\n' + BANNER_KLETS}
+				</Gradient>
 				<Box paddingTop={1}>
 					<Text color={colors.textMuted} italic>
 						// Nederlandse Podcast voor Developers
