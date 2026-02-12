@@ -1,0 +1,50 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useStore } from '../store/index.js';
+
+interface UseApiResult<T> {
+	data: T | null;
+	loading: boolean;
+	error: string | null;
+	refetch: () => void;
+}
+
+export function useApi<T>(
+	fetcher: () => Promise<T>,
+	cacheKey?: string,
+	ttlMs = 5 * 60 * 1000,
+): UseApiResult<T> {
+	const getCached = useStore((s) => s.getCached);
+	const setCache = useStore((s) => s.setCache);
+
+	const [data, setData] = useState<T | null>(
+		cacheKey ? getCached<T>(cacheKey) : null,
+	);
+	const [loading, setLoading] = useState(data === null);
+	const [error, setError] = useState<string | null>(null);
+
+	const fetchData = useCallback(async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			const result = await fetcher();
+			setData(result);
+			if (cacheKey) {
+				setCache(cacheKey, result, ttlMs);
+			}
+		} catch (err) {
+			const message =
+				err instanceof Error ? err.message : 'Onbekende fout';
+			setError(message);
+		} finally {
+			setLoading(false);
+		}
+	}, [fetcher, cacheKey, ttlMs, setCache]);
+
+	useEffect(() => {
+		if (data === null) {
+			fetchData();
+		}
+	}, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+	return { data, loading, error, refetch: fetchData };
+}
