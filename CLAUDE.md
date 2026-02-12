@@ -1,7 +1,7 @@
 # CodeKlets CLI (klets)
 
 ## Project Overview
-Terminal UI for the CodeKlets podcast. Built with Ink 5, React 18, Zustand, and got.
+Terminal UI for the CodeKlets podcast. Built with Ink 6, React 19, Zustand, and got.
 
 ## Commands
 - `npm run dev` — Launch TUI in dev mode (tsx)
@@ -13,13 +13,13 @@ Terminal UI for the CodeKlets podcast. Built with Ink 5, React 18, Zustand, and 
 
 ## Architecture
 - **ESM only** — All files use ESM imports, `.js` extensions in imports
-- **Ink 5 + React 18** — Functional components, hooks
+- **Ink 6 + React 19** — Functional components, hooks
 - **Zustand** — Single store with navigation/player/cache slices
 - **got** — HTTP client for API calls
 - **Stack router** — No external router; Zustand navigation slice manages screen stack
 
 ## API
-- Base URL: `https://preview.codeklets.nl/api/v1` (production: `https://codeklets.nl/api/v1`)
+- Base URL: `https://codeklets.nl/api/v1`
 - All endpoints return `{ data, meta? }` or `{ error, code }`
 - Episodes identified by slug, persons by numeric id
 
