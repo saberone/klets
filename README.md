@@ -2,6 +2,24 @@
 
 Terminal UI for the [CodeKlets](https://codeklets.nl) podcast. Browse episodes, topics, guests, and listen — all from the terminal. Built with Ink, React, and Zustand.
 
+## Screenshots
+
+### Home
+
+<img src="assets/home.gif" alt="Home screen with CodeKlets banner and menu" width="600">
+
+### Episodes
+
+<img src="assets/episodes.gif" alt="Episodes list with filtering and sorting" width="600">
+
+### Episode detail
+
+<img src="assets/episode-detail.gif" alt="Episode detail with tabbed sections" width="600">
+
+### Search
+
+<img src="assets/search.gif" alt="Full-text search with results" width="600">
+
 ## Installation
 
 ```bash
