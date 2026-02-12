@@ -8,6 +8,7 @@ import { getPersons } from '../api/persons.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
+import { EmptyState } from '../components/empty-state.js';
 import type { PaginatedResponse, PersonListItem } from '../api/types.js';
 
 export function PersonsListScreen() {
@@ -48,7 +49,11 @@ export function PersonsListScreen() {
 			{loading && <Loading message="Personen laden..." />}
 			{error && <ErrorDisplay message={error} onRetry={refetch} />}
 
-			{!loading && !error && (
+			{!loading && !error && persons.length === 0 && (
+				<EmptyState message="Geen personen gevonden." />
+			)}
+
+			{!loading && !error && persons.length > 0 && (
 				<Box flexDirection="column">
 					{hasMoreAbove && (
 						<Text color={colors.textSubtle} dimColor>

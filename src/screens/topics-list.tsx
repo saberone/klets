@@ -8,6 +8,7 @@ import { getTopics } from '../api/topics.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
+import { EmptyState } from '../components/empty-state.js';
 import type { PaginatedResponse, Topic } from '../api/types.js';
 
 export function TopicsListScreen() {
@@ -48,7 +49,11 @@ export function TopicsListScreen() {
 			{loading && <Loading message="Onderwerpen laden..." />}
 			{error && <ErrorDisplay message={error} onRetry={refetch} />}
 
-			{!loading && !error && (
+			{!loading && !error && topics.length === 0 && (
+				<EmptyState message="Geen onderwerpen gevonden." />
+			)}
+
+			{!loading && !error && topics.length > 0 && (
 				<Box flexDirection="column">
 					{hasMoreAbove && (
 						<Text color={colors.textSubtle} dimColor>

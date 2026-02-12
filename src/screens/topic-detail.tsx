@@ -8,6 +8,7 @@ import { ScreenContainer } from '../components/screen-container.js';
 import { EpisodeCard } from '../components/episode-card.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
+import { EmptyState } from '../components/empty-state.js';
 import type { TopicDetail, SingleResponse } from '../api/types.js';
 
 export function TopicDetailScreen() {
@@ -52,15 +53,19 @@ export function TopicDetailScreen() {
 				</Text>
 			</Box>
 
-			<Box flexDirection="column" gap={1}>
-				{episodes.map((ep, i) => (
-					<EpisodeCard
-						key={ep.slug}
-						episode={ep}
-						isSelected={i === selectedIndex}
-					/>
-				))}
-			</Box>
+			{episodes.length === 0 ? (
+				<EmptyState message="Geen afleveringen voor dit onderwerp." />
+			) : (
+				<Box flexDirection="column" gap={1}>
+					{episodes.map((ep, i) => (
+						<EpisodeCard
+							key={ep.slug}
+							episode={ep}
+							isSelected={i === selectedIndex}
+						/>
+					))}
+				</Box>
+			)}
 		</ScreenContainer>
 	);
 }

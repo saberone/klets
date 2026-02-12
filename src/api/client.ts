@@ -1,4 +1,5 @@
 import got from 'got';
+import { VERSION } from '../version.js';
 
 const BASE_URL =
 	process.env['CODEKLETS_API_URL'] || 'https://preview.codeklets.nl/api/v1';
@@ -8,6 +9,6 @@ export const api = got.extend({
 	timeout: { request: 10_000 },
 	retry: { limit: 2 },
 	headers: {
-		'user-agent': 'klets-cli/0.1.0',
+		'user-agent': `klets-cli/${VERSION}`,
 	},
 });

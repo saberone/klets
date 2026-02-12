@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "keywords": [
     "codeklets",
@@ -43,6 +44,7 @@
     "@types/node": "^22.13.4",
     "@types/react": "^18.3.18",
     "eslint": "^9.20.1",
+    "ink-testing-library": "^4.0.0",
     "prettier": "^3.5.2",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",

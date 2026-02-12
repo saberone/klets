@@ -5,6 +5,7 @@ import { useGlobalKeybindings } from './hooks/use-keybindings.js';
 import { Header } from './components/header.js';
 import { Footer } from './components/footer.js';
 import { PlayerBar } from './components/player-bar.js';
+import { ErrorBoundary } from './components/error-boundary.js';
 import { HomeScreen } from './screens/home.js';
 import { EpisodesListScreen } from './screens/episodes-list.js';
 import { EpisodeDetailScreen } from './screens/episode-detail.js';
@@ -45,11 +46,14 @@ function ScreenRouter() {
 
 export function App() {
 	useGlobalKeybindings();
+	const stack = useStore((s) => s.stack);
 
 	return (
 		<Box flexDirection="column" minHeight={20}>
 			<Header />
-			<ScreenRouter />
+			<ErrorBoundary key={stack.length}>
+				<ScreenRouter />
+			</ErrorBoundary>
 			<PlayerBar />
 			<Footer />
 		</Box>
