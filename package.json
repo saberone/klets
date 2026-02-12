@@ -4,7 +4,7 @@
   "description": "CodeKlets Podcast TUI — browse episodes, topics, guests & listen from the terminal",
   "type": "module",
   "bin": {
-    "klets": "./dist/cli.js"
+    "klets": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -33,23 +33,23 @@
     "node": ">=18"
   },
   "dependencies": {
-    "got": "^14.4.6",
-    "ink": "^5.1.0",
+    "got": "^14.6.6",
+    "ink": "^6.7.0",
     "ink-spinner": "^5.0.0",
-    "react": "^18.3.1",
-    "zustand": "^5.0.3"
+    "react": "^19.2.4",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "@types/node": "^22.13.4",
-    "@types/react": "^18.3.18",
+    "@types/react": "^19.2.14",
     "eslint": "^9.20.1",
     "ink-testing-library": "^4.0.0",
-    "prettier": "^3.5.2",
-    "tsup": "^8.4.0",
-    "tsx": "^4.19.3",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.24.1",
-    "vitest": "^3.0.5"
+    "prettier": "^3.8.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.55.0",
+    "vitest": "^4.0.18"
   }
 }
