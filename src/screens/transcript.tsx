@@ -1,9 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
+import { usePlayer } from '../hooks/use-player.js';
 import { useApi } from '../hooks/use-api.js';
+import { useScrollableList } from '../hooks/use-scrollable-list.js';
 import { getTranscript } from '../api/episodes.js';
+import { isActive, getPosition, seekAbsolute } from '../player/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
@@ -16,13 +19,16 @@ function formatMs(ms: number): string {
 	return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-const PAGE_SIZE = 20;
-
 export function TranscriptScreen() {
 	const { current } = useNavigation();
 	const slug = current.params?.['slug'] as string;
 	const title = (current.params?.['title'] as string) ?? slug;
-	const [offset, setOffset] = useState(0);
+	const player = usePlayer();
+	const [selectedIndex, setSelectedIndex] = useState(0);
+	const [following, setFollowing] = useState(true);
+	const [activeSegmentIndex, setActiveSegmentIndex] = useState(-1);
+	const followingRef = useRef(following);
+	followingRef.current = following;
 
 	const fetcher = useCallback(() => getTranscript(slug), [slug]);
 	const { data, loading, error, refetch } = useApi<
@@ -30,17 +36,50 @@ export function TranscriptScreen() {
 	>(fetcher, `transcript-${slug}`, 10 * 60 * 1000);
 
 	const segments = data?.data?.segments ?? [];
-	const visible = segments.slice(offset, offset + PAGE_SIZE);
-	const totalPages = Math.ceil(segments.length / PAGE_SIZE);
-	const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+	const isEpisodePlaying =
+		player.currentEpisodeSlug === slug && isActive();
+
+	// Poll player position and find matching segment
+	useEffect(() => {
+		if (!isEpisodePlaying || segments.length === 0) {
+			setActiveSegmentIndex(-1);
+			return;
+		}
+
+		const tick = () => {
+			const posMs = getPosition() * 1000;
+			const idx = findSegmentAtTime(segments, posMs);
+			setActiveSegmentIndex(idx);
+			if (idx >= 0 && followingRef.current) {
+				setSelectedIndex(idx);
+			}
+		};
+
+		tick();
+		const timer = setInterval(tick, 1000);
+		return () => clearInterval(timer);
+	}, [isEpisodePlaying, segments]);
+
+	const { visibleRange, hasMoreAbove, hasMoreBelow, aboveCount, belowCount } =
+		useScrollableList(segments.length, selectedIndex);
 
 	useInput((input, key) => {
 		if (loading) return;
 
 		if (input === 'j' || key.downArrow) {
-			setOffset((o) => Math.min(o + PAGE_SIZE, Math.max(0, segments.length - PAGE_SIZE)));
+			setFollowing(false);
+			setSelectedIndex((i) => Math.min(i + 1, segments.length - 1));
 		} else if (input === 'k' || key.upArrow) {
-			setOffset((o) => Math.max(o - PAGE_SIZE, 0));
+			setFollowing(false);
+			setSelectedIndex((i) => Math.max(i - 1, 0));
+		} else if (key.return && isEpisodePlaying && segments[selectedIndex]) {
+			seekAbsolute(segments[selectedIndex]!.startTimeMs / 1000);
+			setFollowing(true);
+		} else if (input === 'f' && isEpisodePlaying) {
+			setFollowing(true);
+			if (activeSegmentIndex >= 0) {
+				setSelectedIndex(activeSegmentIndex);
+			}
 		} else if (input === 'r' && error) {
 			refetch();
 		}
@@ -56,6 +95,11 @@ export function TranscriptScreen() {
 					Transcript
 				</Text>
 				<Text color={colors.textMuted}>{title}</Text>
+				{isEpisodePlaying && (
+					<Text color={following ? colors.success : colors.textSubtle}>
+						{following ? '● volgt' : '○ gepauzeerd'}
+					</Text>
+				)}
 			</Box>
 
 			{segments.length === 0 ? (
@@ -65,41 +109,106 @@ export function TranscriptScreen() {
 			) : (
 				<>
 					<Box flexDirection="column">
-						{visible.map((seg) => {
-							const speakerColor =
-								seg.speaker === 'Saber'
-									? colors.cyan
-									: seg.speaker === 'Kishen'
-										? colors.purple
-										: colors.warning;
-							return (
-								<Box key={seg.segmentIndex} gap={1}>
-									<Text color={colors.textSubtle}>
-										{formatMs(seg.startTimeMs)}
-									</Text>
-									<Text color={speakerColor} bold>
-										{(seg.speaker ?? '?').padEnd(10)}
-									</Text>
-									<Text color={colors.text}>{seg.text}</Text>
-								</Box>
-							);
-						})}
+						{hasMoreAbove && (
+							<Text color={colors.textSubtle} dimColor>
+								{'  '}▲ {aboveCount} meer
+							</Text>
+						)}
+						{segments
+							.slice(visibleRange[0], visibleRange[1])
+							.map((seg, vi) => {
+								const i = visibleRange[0] + vi;
+								const isSelected = i === selectedIndex;
+								const isActive = i === activeSegmentIndex;
+								const highlighted = isSelected || isActive;
+								const speakerColor =
+									seg.speaker === 'Saber'
+										? colors.cyan
+										: seg.speaker === 'Kishen'
+											? colors.purple
+											: colors.warning;
+								const indicator = isActive ? '▸' : isSelected ? '›' : ' ';
+								return (
+									<Box key={seg.segmentIndex} gap={1}>
+										<Text
+											color={
+												isActive
+													? colors.cyan
+													: isSelected
+														? colors.purple
+														: colors.textSubtle
+											}
+										>
+											{indicator}
+										</Text>
+										<Text
+											color={
+												highlighted
+													? colors.text
+													: colors.textSubtle
+											}
+										>
+											{formatMs(seg.startTimeMs)}
+										</Text>
+										<Text
+											color={speakerColor}
+											bold={highlighted}
+											dimColor={!highlighted}
+										>
+											{(seg.speaker ?? '?').padEnd(10)}
+										</Text>
+										<Text
+											color={
+												highlighted
+													? colors.text
+													: colors.textMuted
+											}
+											bold={isActive}
+										>
+											{seg.text}
+										</Text>
+									</Box>
+								);
+							})}
+						{hasMoreBelow && (
+							<Text color={colors.textSubtle} dimColor>
+								{'  '}▼ {belowCount} meer
+							</Text>
+						)}
 					</Box>
 
 					<Box paddingTop={1} gap={2}>
-						<Text color={colors.textSubtle}>
-							Pagina {currentPage}/{totalPages}
-						</Text>
-						<Text color={colors.textSubtle}>·</Text>
 						<Text color={colors.textSubtle}>
 							{segments.length} segmenten
 						</Text>
 						<Text color={colors.textSubtle}>
 							<Text color={colors.cyan}>j/k</Text> scrollen
 						</Text>
+						{isEpisodePlaying && (
+							<Text color={colors.textSubtle}>
+								<Text color={colors.cyan}>enter</Text> spring naar
+							</Text>
+						)}
+						{isEpisodePlaying && !following && (
+							<Text color={colors.textSubtle}>
+								<Text color={colors.cyan}>f</Text> volg afspelen
+							</Text>
+						)}
 					</Box>
 				</>
 			)}
 		</ScreenContainer>
 	);
+}
+
+function findSegmentAtTime(
+	segments: { startTimeMs: number; endTimeMs: number }[],
+	posMs: number,
+): number {
+	for (let i = segments.length - 1; i >= 0; i--) {
+		if (posMs >= segments[i]!.startTimeMs) {
+			return i;
+		}
+	}
+	return -1;
 }
