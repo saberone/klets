@@ -13,6 +13,7 @@ import { TopicDetailScreen } from './screens/topic-detail.js';
 import { PersonsListScreen } from './screens/persons-list.js';
 import { PersonDetailScreen } from './screens/person-detail.js';
 import { SearchScreen } from './screens/search.js';
+import { TranscriptScreen } from './screens/transcript.js';
 
 function ScreenRouter() {
 	const stack = useStore((s) => s.stack);
@@ -25,6 +26,8 @@ function ScreenRouter() {
 			return <EpisodesListScreen />;
 		case 'episode-detail':
 			return <EpisodeDetailScreen />;
+		case 'transcript':
+			return <TranscriptScreen />;
 		case 'topics-list':
 			return <TopicsListScreen />;
 		case 'topic-detail':

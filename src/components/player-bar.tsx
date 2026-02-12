@@ -1,18 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { colors } from '../theme/colors.js';
 import { formatDuration } from '../theme/format.js';
 import { usePlayer } from '../hooks/use-player.js';
-import { getDetectedBackend, isActive } from '../player/index.js';
+import {
+	getDetectedBackend,
+	isActive,
+	getPosition,
+} from '../player/index.js';
 
 export function PlayerBar() {
 	const { currentEpisodeTitle, durationSeconds } = usePlayer();
+	const [position, setPosition] = useState(0);
+
+	useEffect(() => {
+		if (!currentEpisodeTitle) return;
+		const timer = setInterval(() => {
+			if (isActive()) {
+				setPosition(getPosition());
+			}
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [currentEpisodeTitle]);
 
 	if (!currentEpisodeTitle) return null;
 
 	const playing = isActive();
 	const icon = playing ? '▶' : '■';
 	const backend = getDetectedBackend();
+	const showPosition = backend === 'mpv' && position > 0;
 
 	return (
 		<Box
@@ -28,9 +44,15 @@ export function PlayerBar() {
 				</Text>
 			</Box>
 			<Box gap={2}>
-				<Text color={colors.textMuted}>
-					{formatDuration(durationSeconds)}
-				</Text>
+				{showPosition ? (
+					<Text color={colors.textMuted}>
+						{formatDuration(position)} / {formatDuration(durationSeconds)}
+					</Text>
+				) : (
+					<Text color={colors.textMuted}>
+						{formatDuration(durationSeconds)}
+					</Text>
+				)}
 				{backend && (
 					<Text color={colors.textSubtle}>via {backend}</Text>
 				)}

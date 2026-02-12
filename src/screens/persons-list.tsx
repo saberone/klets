@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { useApi } from '../hooks/use-api.js';
+import { useScrollableList } from '../hooks/use-scrollable-list.js';
 import { getPersons } from '../api/persons.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
@@ -19,6 +20,8 @@ export function PersonsListScreen() {
 	>(fetcher, 'persons', 60 * 60 * 1000);
 
 	const persons = data?.data ?? [];
+	const { visibleRange, hasMoreAbove, hasMoreBelow, aboveCount, belowCount } =
+		useScrollableList(persons.length, selectedIndex);
 
 	useInput((input, key) => {
 		if (loading) return;
@@ -47,7 +50,13 @@ export function PersonsListScreen() {
 
 			{!loading && !error && (
 				<Box flexDirection="column">
-					{persons.map((person, i) => {
+					{hasMoreAbove && (
+						<Text color={colors.textSubtle} dimColor>
+							{'  '}▲ {aboveCount} meer
+						</Text>
+					)}
+					{persons.slice(visibleRange[0], visibleRange[1]).map((person, vi) => {
+						const i = visibleRange[0] + vi;
 						const isSelected = i === selectedIndex;
 						return (
 							<Box key={person.id} flexDirection="column" paddingLeft={1}>
@@ -75,6 +84,11 @@ export function PersonsListScreen() {
 							</Box>
 						);
 					})}
+					{hasMoreBelow && (
+						<Text color={colors.textSubtle} dimColor>
+							{'  '}▼ {belowCount} meer
+						</Text>
+					)}
 				</Box>
 			)}
 		</ScreenContainer>

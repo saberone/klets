@@ -6,7 +6,7 @@ import { useNavigation } from '../hooks/use-navigation.js';
 import { usePlayer } from '../hooks/use-player.js';
 import { useApi } from '../hooks/use-api.js';
 import { getEpisode } from '../api/episodes.js';
-import { play, stop as stopPlayer, isActive } from '../player/index.js';
+import { play, stop as stopPlayer, isActive, seek, seekAbsolute, getPosition } from '../player/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { TagPill } from '../components/tag-pill.js';
 import { Loading } from '../components/loading.js';
@@ -19,7 +19,7 @@ interface Section {
 }
 
 export function EpisodeDetailScreen() {
-	const { current } = useNavigation();
+	const { current, navigate } = useNavigation();
 	const slug = current.params?.['slug'] as string;
 	const [activeSection, setActiveSection] = useState(0);
 	const player = usePlayer();
@@ -51,6 +51,8 @@ export function EpisodeDetailScreen() {
 			setActiveSection((i) => Math.min(i + 1, sections.length - 1));
 		} else if (input === 'k' || key.upArrow) {
 			setActiveSection((i) => Math.max(i - 1, 0));
+		} else if (input === 't' && episode.hasTranscript) {
+			navigate('transcript', { slug, title: episode.title });
 		} else if (input === 'p') {
 			if (player.currentEpisodeSlug === slug && isActive()) {
 				stopPlayer();
@@ -59,6 +61,32 @@ export function EpisodeDetailScreen() {
 				player.setPlaying(slug, episode.title, episode.durationSeconds);
 				play(slug);
 			}
+		} else if (
+			input === '[' &&
+			player.currentEpisodeSlug === slug &&
+			isActive() &&
+			episode.chapters.length > 0
+		) {
+			// Previous chapter
+			const pos = getPosition();
+			const prev = [...episode.chapters]
+				.reverse()
+				.find((c) => c.startTime < pos - 3);
+			if (prev) seekAbsolute(prev.startTime);
+		} else if (
+			input === ']' &&
+			player.currentEpisodeSlug === slug &&
+			isActive() &&
+			episode.chapters.length > 0
+		) {
+			// Next chapter
+			const pos = getPosition();
+			const next = episode.chapters.find((c) => c.startTime > pos + 1);
+			if (next) seekAbsolute(next.startTime);
+		} else if (input === '<' && player.currentEpisodeSlug === slug && isActive()) {
+			seek(-15);
+		} else if (input === '>' && player.currentEpisodeSlug === slug && isActive()) {
+			seek(15);
 		} else if (input === 'r' && error) {
 			refetch();
 		}
@@ -69,6 +97,7 @@ export function EpisodeDetailScreen() {
 	if (!episode) return null;
 
 	const currentKey = sections[activeSection]?.key;
+	const nowPlaying = player.currentEpisodeSlug === slug && isActive();
 
 	return (
 		<ScreenContainer>
@@ -103,15 +132,27 @@ export function EpisodeDetailScreen() {
 				)}
 			</Box>
 
-			{/* Play hint + section tabs */}
-			<Box paddingBottom={1}>
+			{/* Action hints */}
+			<Box paddingBottom={1} gap={2}>
 				<Text color={colors.textSubtle}>
 					<Text color={colors.cyan}>p</Text>
-					{player.currentEpisodeSlug === slug && isActive()
-						? ' stop'
-						: ' afspelen'}
-					{'  '}
+					{nowPlaying ? ' stop' : ' afspelen'}
 				</Text>
+				{nowPlaying && (
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>{'<>'}</Text> ±15s
+					</Text>
+				)}
+				{nowPlaying && episode.chapters.length > 0 && (
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>[]</Text> hoofdstuk
+					</Text>
+				)}
+				{episode.hasTranscript && (
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>t</Text> transcript
+					</Text>
+				)}
 			</Box>
 
 			<Box gap={2} paddingBottom={1}>

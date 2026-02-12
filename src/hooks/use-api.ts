@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '../store/index.js';
 
 interface UseApiResult<T> {
@@ -21,6 +21,7 @@ export function useApi<T>(
 	);
 	const [loading, setLoading] = useState(data === null);
 	const [error, setError] = useState<string | null>(null);
+	const prevKeyRef = useRef(cacheKey);
 
 	const fetchData = useCallback(async () => {
 		setLoading(true);
@@ -41,10 +42,20 @@ export function useApi<T>(
 	}, [fetcher, cacheKey, ttlMs, setCache]);
 
 	useEffect(() => {
-		if (data === null) {
+		// On first mount or when cache key changes, fetch data
+		if (prevKeyRef.current !== cacheKey) {
+			prevKeyRef.current = cacheKey;
+			const cached = cacheKey ? getCached<T>(cacheKey) : null;
+			if (cached) {
+				setData(cached);
+				setLoading(false);
+				return;
+			}
+			fetchData();
+		} else if (data === null) {
 			fetchData();
 		}
-	}, []);  // eslint-disable-line react-hooks/exhaustive-deps
+	}, [cacheKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return { data, loading, error, refetch: fetchData };
 }

@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { useApi } from '../hooks/use-api.js';
+import { useScrollableList } from '../hooks/use-scrollable-list.js';
 import { getTopics } from '../api/topics.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
@@ -19,6 +20,8 @@ export function TopicsListScreen() {
 	>(fetcher, 'topics', 60 * 60 * 1000);
 
 	const topics = data?.data ?? [];
+	const { visibleRange, hasMoreAbove, hasMoreBelow, aboveCount, belowCount } =
+		useScrollableList(topics.length, selectedIndex);
 
 	useInput((input, key) => {
 		if (loading) return;
@@ -47,7 +50,13 @@ export function TopicsListScreen() {
 
 			{!loading && !error && (
 				<Box flexDirection="column">
-					{topics.map((topic, i) => {
+					{hasMoreAbove && (
+						<Text color={colors.textSubtle} dimColor>
+							{'  '}▲ {aboveCount} meer
+						</Text>
+					)}
+					{topics.slice(visibleRange[0], visibleRange[1]).map((topic, vi) => {
+						const i = visibleRange[0] + vi;
 						const isSelected = i === selectedIndex;
 						return (
 							<Box key={topic.slug} gap={1} paddingLeft={1}>
@@ -68,6 +77,11 @@ export function TopicsListScreen() {
 							</Box>
 						);
 					})}
+					{hasMoreBelow && (
+						<Text color={colors.textSubtle} dimColor>
+							{'  '}▼ {belowCount} meer
+						</Text>
+					)}
 				</Box>
 			)}
 		</ScreenContainer>
