@@ -3,14 +3,16 @@ import { Box, Text } from 'ink';
 import { colors } from '../theme/colors.js';
 import { formatDuration } from '../theme/format.js';
 import { usePlayer } from '../hooks/use-player.js';
+import { getDetectedBackend, isActive } from '../player/index.js';
 
 export function PlayerBar() {
-	const { isPlaying, currentEpisodeTitle, positionSeconds, durationSeconds } =
-		usePlayer();
+	const { currentEpisodeTitle, durationSeconds } = usePlayer();
 
 	if (!currentEpisodeTitle) return null;
 
-	const icon = isPlaying ? '▶' : '⏸';
+	const playing = isActive();
+	const icon = playing ? '▶' : '■';
+	const backend = getDetectedBackend();
 
 	return (
 		<Box
@@ -25,9 +27,14 @@ export function PlayerBar() {
 					{currentEpisodeTitle}
 				</Text>
 			</Box>
-			<Text color={colors.textMuted}>
-				{formatDuration(positionSeconds)} / {formatDuration(durationSeconds)}
-			</Text>
+			<Box gap={2}>
+				<Text color={colors.textMuted}>
+					{formatDuration(durationSeconds)}
+				</Text>
+				{backend && (
+					<Text color={colors.textSubtle}>via {backend}</Text>
+				)}
+			</Box>
 		</Box>
 	);
 }

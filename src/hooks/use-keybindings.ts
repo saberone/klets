@@ -3,15 +3,18 @@ import { useNavigation } from './use-navigation.js';
 
 export function useGlobalKeybindings() {
 	const { exit } = useApp();
-	const { goBack, stack } = useNavigation();
+	const { goBack, current, stack } = useNavigation();
 
 	useInput((input, key) => {
-		if (input === 'q') {
+		// Don't intercept q/backspace on the search screen (needs text input)
+		const onSearch = current.screen === 'search';
+
+		if (input === 'q' && !onSearch) {
 			exit();
 			return;
 		}
 
-		if (key.escape || (key.backspace && stack.length > 1)) {
+		if (key.escape && stack.length > 1) {
 			goBack();
 		}
 	});
