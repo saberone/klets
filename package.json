@@ -29,6 +29,10 @@
   ],
   "author": "CodeKlets",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saberone/klets.git"
+  },
   "engines": {
     "node": ">=18"
   },
