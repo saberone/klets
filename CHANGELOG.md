@@ -1,5 +1,11 @@
 # klets
 
+## 0.1.3
+
+### Patch Changes
+
+- 7926e54: Fix transcript tracking lag by reducing poll intervals from 1s to 300ms and returning sub-second precision from player position
+
 ## 0.1.2
 
 ### Patch Changes
