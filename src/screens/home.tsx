@@ -3,6 +3,9 @@ import { Box, Text, useInput } from 'ink';
 import Gradient from 'ink-gradient';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
+import { useColorWave } from '../hooks/use-color-wave.js';
+import { useKonamiCode } from '../hooks/use-konami-code.js';
+import { playJingle } from '../audio/jingle.js';
 import { ScreenContainer } from '../components/screen-container.js';
 
 const BANNER_CODE = `\
@@ -53,6 +56,18 @@ const menuItems: MenuItem[] = [
 export function HomeScreen() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const { navigate } = useNavigation();
+	const { activated } = useKonamiCode();
+	const waveColors = useColorWave({ speed: activated ? 50 : 200 });
+
+	// Play jingle when Konami code activates
+	const [jinglePlayed, setJinglePlayed] = useState(false);
+	if (activated && !jinglePlayed) {
+		playJingle();
+		setJinglePlayed(true);
+	}
+	if (!activated && jinglePlayed) {
+		setJinglePlayed(false);
+	}
 
 	useInput((input, key) => {
 		if (input === 'j' || key.downArrow) {
@@ -68,9 +83,16 @@ export function HomeScreen() {
 	return (
 		<ScreenContainer>
 			<Box flexDirection="column" alignItems="center" paddingY={1}>
-				<Gradient colors={[colors.cyan, colors.purple]}>
+				<Gradient colors={waveColors}>
 					{BANNER_CODE + '\n' + BANNER_KLETS}
 				</Gradient>
+				{activated && (
+					<Box paddingTop={1}>
+						<Gradient colors={waveColors}>
+							{'🎮 Geheime modus geactiveerd! 🎮'}
+						</Gradient>
+					</Box>
+				)}
 				<Box paddingTop={1}>
 					<Text color={colors.textMuted} italic>
 						// Nederlandse Podcast voor Developers

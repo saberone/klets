@@ -38,5 +38,7 @@ Vereisten:
 const React = await import('react');
 const { render } = await import('ink');
 const { App } = await import('./app.js');
+const { playJingle } = await import('./audio/jingle.js');
 
+playJingle();
 render(React.createElement(App));
