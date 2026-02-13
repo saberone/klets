@@ -7,6 +7,8 @@ import { useColorWave } from '../hooks/use-color-wave.js';
 import { useKonamiCode } from '../hooks/use-konami-code.js';
 import { playJingle } from '../audio/jingle.js';
 import { ScreenContainer } from '../components/screen-container.js';
+import { MatrixRain } from '../components/matrix-rain.js';
+import { useTerminalSize } from '../hooks/use-terminal-size.js';
 
 const BANNER_CODE = `\
  ██████╗ ██████╗ ██████╗ ███████╗
@@ -57,7 +59,10 @@ export function HomeScreen() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const { navigate } = useNavigation();
 	const { activated } = useKonamiCode();
+	const { rows: terminalRows, columns: terminalColumns } = useTerminalSize();
 	const waveColors = useColorWave({ speed: activated ? 50 : 200 });
+	const rainHeight = Math.max(3, terminalRows - 20);
+	const rainWidth = Math.min(terminalColumns, 80);
 
 	// Play jingle when Konami code activates
 	const [jinglePlayed, setJinglePlayed] = useState(false);
@@ -92,6 +97,9 @@ export function HomeScreen() {
 							{'🎮 Geheime modus geactiveerd! 🎮'}
 						</Gradient>
 					</Box>
+				)}
+					{activated && (
+					<MatrixRain width={rainWidth} height={rainHeight} active={activated} />
 				)}
 				<Box paddingTop={1}>
 					<Text color={colors.textMuted} italic>
