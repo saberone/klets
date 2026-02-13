@@ -1,5 +1,11 @@
 # klets
 
+## 0.2.0
+
+### Minor Changes
+
+- f3424d3: Add update check and auto-update: non-blocking startup check against npm registry with 24h cache, update banner, and one-key auto-update with `u`
+
 ## 0.1.3
 
 ### Patch Changes
