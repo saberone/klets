@@ -1,5 +1,21 @@
 # klets
 
+## 0.3.0
+
+### Minor Changes
+
+- 26362ce: Add animated banner, Konami easter egg, and startup chiptune
+  - Home banner now cycles through a baby blue ↔ pink gradient wave animation
+  - Typing ↑↑↓↓←→←→ba on the home screen activates party mode (fast rainbow cycling + secret message)
+  - 80's-style chiptune jingle plays on startup (pulse wave synth, requires audio backend)
+
+### Patch Changes
+
+- 196b456: Add matrix rain effect to Konami easter egg
+  - Falling katakana/digit characters animate between the banner and menu during party mode
+  - Bright cyan head with fading green trail for classic Matrix look
+  - Adapts to terminal size automatically
+
 ## 0.2.0
 
 ### Minor Changes
