@@ -73,11 +73,11 @@ function connectSocket() {
 		}
 	});
 
-	// Poll position every second
+	// Poll position frequently for responsive transcript tracking
 	pollTimer = setInterval(() => {
 		sendCommand('get_property', 'time-pos', -1);
 		sendCommand('get_property', 'duration', -2);
-	}, 1000);
+	}, 300);
 }
 
 function sendCommand(cmd: string, ...args: (string | number)[]) {
@@ -98,7 +98,7 @@ export function seekAbsoluteMpv(seconds: number): void {
 }
 
 export function getPositionMpv(): number {
-	return Math.floor(positionSeconds);
+	return positionSeconds;
 }
 
 export function getDurationMpv(): number {

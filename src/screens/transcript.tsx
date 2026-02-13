@@ -56,7 +56,7 @@ export function TranscriptScreen() {
 		};
 
 		tick();
-		const timer = setInterval(tick, 1000);
+		const timer = setInterval(tick, 300);
 		return () => clearInterval(timer);
 	}, [isEpisodePlaying, segments]);
 
