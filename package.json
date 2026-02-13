@@ -1,6 +1,6 @@
 {
   "name": "klets",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CodeKlets Podcast TUI — browse episodes, topics, guests & listen from the terminal",
   "type": "module",
   "bin": {
