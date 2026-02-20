@@ -54,11 +54,11 @@ interface UpdateCheckResult {
 export async function checkForUpdate(): Promise<UpdateCheckResult> {
 	const currentVersion = VERSION;
 
-	// Try cache first
+	// Use cache only if it already found a newer version — otherwise re-check
 	const cached = await readCache();
-	if (cached) {
+	if (cached && isNewerVersion(currentVersion, cached.latestVersion)) {
 		return {
-			updateAvailable: isNewerVersion(currentVersion, cached.latestVersion),
+			updateAvailable: true,
 			currentVersion,
 			latestVersion: cached.latestVersion,
 		};
