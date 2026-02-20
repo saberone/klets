@@ -29,12 +29,16 @@ const SORT_OPTIONS = [
 type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 
 export function EpisodesListScreen() {
+	const { current, navigate } = useNavigation();
+	const initialTag = current.params?.['tag'] as string | undefined;
+	const initialTagName = current.params?.['tagName'] as string | undefined;
 	const [page, setPage] = useState(1);
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [season, setSeason] = useState<number | undefined>(undefined);
 	const [sort, setSort] = useState<SortValue>('newest');
+	const [tag, setTag] = useState<string | undefined>(initialTag);
+	const [tagName, setTagName] = useState<string | undefined>(initialTagName);
 	const [seasons, setSeasons] = useState<Season[]>([]);
-	const { navigate } = useNavigation();
 
 	// Fetch seasons for the filter
 	useEffect(() => {
@@ -45,8 +49,9 @@ export function EpisodesListScreen() {
 
 	const query: EpisodesQuery = { page, limit: 15, sort };
 	if (season) query.season = season;
+	if (tag) query.tag = tag;
 
-	const cacheKey = `episodes-p${page}-s${season ?? 'all'}-${sort}`;
+	const cacheKey = `episodes-p${page}-s${season ?? 'all'}-${sort}-t${tag ?? 'none'}`;
 	const fetcher = useCallback(() => getEpisodes(query), [cacheKey]);
 
 	const { data, loading, error, refetch } = useApi<
@@ -100,6 +105,11 @@ export function EpisodesListScreen() {
 			}
 			setPage(1);
 			setSelectedIndex(0);
+		} else if (input === 'x' && tag) {
+			setTag(undefined);
+			setTagName(undefined);
+			setPage(1);
+			setSelectedIndex(0);
 		} else if (input === 'r' && error) {
 			refetch();
 		}
@@ -124,6 +134,14 @@ export function EpisodesListScreen() {
 					<Text color={colors.cyan}>s</Text> sorteer:{' '}
 					<Text color={colors.text}>{sortLabel}</Text>
 				</Text>
+				{tag && (
+					<Text color={colors.textSubtle}>
+						tag:{' '}
+						<Text color={colors.purple}>{tagName ?? tag}</Text>
+						{' '}
+						<Text color={colors.cyan}>x</Text> wissen
+					</Text>
+				)}
 			</Box>
 
 			{loading && <Loading message="Afleveringen laden..." />}

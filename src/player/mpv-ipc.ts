@@ -97,6 +97,10 @@ export function seekAbsoluteMpv(seconds: number): void {
 	sendCommand('seek', seconds as unknown as string, 'absolute' as string);
 }
 
+export function setSpeedMpv(speed: number): void {
+	sendCommand('set_property', 'speed' as string, speed as unknown as string);
+}
+
 export function getPositionMpv(): number {
 	return positionSeconds;
 }

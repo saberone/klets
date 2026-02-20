@@ -28,7 +28,12 @@ const BANNER_KLETS = `\
 
 interface MenuItem {
 	label: string;
-	screen: 'episodes-list' | 'topics-list' | 'persons-list' | 'search';
+	screen:
+		| 'episodes-list'
+		| 'topics-list'
+		| 'persons-list'
+		| 'search'
+		| 'favorites';
 	description: string;
 }
 
@@ -47,6 +52,11 @@ const menuItems: MenuItem[] = [
 		label: 'Personen',
 		screen: 'persons-list',
 		description: 'Gasten en hosts',
+	},
+	{
+		label: 'Favorieten',
+		screen: 'favorites',
+		description: 'Opgeslagen afleveringen',
 	},
 	{
 		label: 'Zoeken',

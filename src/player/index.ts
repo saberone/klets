@@ -9,6 +9,7 @@ import {
 	seekAbsoluteMpv,
 	getPositionMpv,
 	getDurationMpv,
+	setSpeedMpv,
 } from './mpv-ipc.js';
 
 let proc: ChildProcess | null = null;
@@ -99,6 +100,13 @@ export function getPosition(): number {
 export function getDuration(): number {
 	if (activeBackend === 'mpv') return getDurationMpv();
 	return 0;
+}
+
+export function setSpeed(speed: number): void {
+	if (activeBackend === 'mpv') {
+		setSpeedMpv(speed);
+	}
+	// ffplay/afplay don't support speed control
 }
 
 export { type Backend } from './detect.js';

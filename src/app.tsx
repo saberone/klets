@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box } from 'ink';
 import { useStore } from './store/index.js';
 import { useGlobalKeybindings } from './hooks/use-keybindings.js';
@@ -16,6 +16,9 @@ import { PersonsListScreen } from './screens/persons-list.js';
 import { PersonDetailScreen } from './screens/person-detail.js';
 import { SearchScreen } from './screens/search.js';
 import { TranscriptScreen } from './screens/transcript.js';
+import { HelpScreen } from './screens/help.js';
+import { FavoritesScreen } from './screens/favorites.js';
+import { useHistoryTracker } from './hooks/use-history-tracker.js';
 
 function ScreenRouter() {
 	const stack = useStore((s) => s.stack);
@@ -40,6 +43,10 @@ function ScreenRouter() {
 			return <PersonDetailScreen />;
 		case 'search':
 			return <SearchScreen />;
+		case 'help':
+			return <HelpScreen />;
+		case 'favorites':
+			return <FavoritesScreen />;
 		default:
 			return <HomeScreen />;
 	}
@@ -47,7 +54,15 @@ function ScreenRouter() {
 
 export function App() {
 	useGlobalKeybindings();
+	useHistoryTracker();
 	const stack = useStore((s) => s.stack);
+	const loadHistory = useStore((s) => s.loadHistory);
+	const loadFavorites = useStore((s) => s.loadFavorites);
+
+	useEffect(() => {
+		loadHistory();
+		loadFavorites();
+	}, []);
 
 	return (
 		<Box flexDirection="column" minHeight={20}>
