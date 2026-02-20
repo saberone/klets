@@ -1,5 +1,17 @@
 # klets
 
+## 0.4.0
+
+### Minor Changes
+
+- 58f6572: Add transcript search results, open links in browser, help screen, tag browsing, playback speed control, progress bar, global playback controls, listen history with resume, favorites, and episode queue
+
+### Patch Changes
+
+- 58f6572: Fix update check cache bypassing new releases
+
+  Skip the cache when no update was previously found, so new releases are discovered immediately instead of waiting for the 24-hour TTL to expire.
+
 ## 0.3.0
 
 ### Minor Changes
