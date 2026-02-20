@@ -9,7 +9,9 @@ export type ScreenName =
 	| 'topic-detail'
 	| 'persons-list'
 	| 'person-detail'
-	| 'search';
+	| 'search'
+	| 'help'
+	| 'favorites';
 
 export interface ScreenEntry {
 	screen: ScreenName;

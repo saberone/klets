@@ -6,9 +6,10 @@ import { useNavigation } from '../hooks/use-navigation.js';
 import { usePlayer } from '../hooks/use-player.js';
 import { useApi } from '../hooks/use-api.js';
 import { getEpisode } from '../api/episodes.js';
-import { play, stop as stopPlayer, isActive, seek, seekAbsolute, getPosition } from '../player/index.js';
+import { play, stop as stopPlayer, isActive, seekAbsolute } from '../player/index.js';
+import { openUrl } from '../utils/open-url.js';
+import { useStore } from '../store/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
-import { TagPill } from '../components/tag-pill.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
 import type { EpisodeDetail, SingleResponse } from '../api/types.js';
@@ -22,7 +23,15 @@ export function EpisodeDetailScreen() {
 	const { current, navigate } = useNavigation();
 	const slug = current.params?.['slug'] as string;
 	const [activeSection, setActiveSection] = useState(0);
+	const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
+	const [selectedPersonIndex, setSelectedPersonIndex] = useState(0);
+	const [selectedTagIndex, setSelectedTagIndex] = useState(0);
+	const [resumeMessage, setResumeMessage] = useState<string | null>(null);
 	const player = usePlayer();
+	const getHistoryEntry = useStore((s) => s.getHistoryEntry);
+	const toggleFavorite = useStore((s) => s.toggleFavorite);
+	const isFavorite = useStore((s) => s.isFavorite);
+	const favorited = isFavorite(slug);
 
 	const fetcher = useCallback(() => getEpisode(slug), [slug]);
 	const { data, loading, error, refetch } = useApi<
@@ -45,48 +54,120 @@ export function EpisodeDetailScreen() {
 		return s;
 	}, [episode]);
 
+	const currentKey = sections[activeSection]?.key;
+
 	useInput((input, key) => {
 		if (!episode) return;
+
+		// Info tab: j/k to navigate tags, enter to filter by tag
+		if (currentKey === 'info' && episode.tags.length > 0) {
+			if (input === 'j' || key.downArrow) {
+				setSelectedTagIndex((i) =>
+					Math.min(i + 1, episode.tags.length - 1),
+				);
+				return;
+			} else if (input === 'k' || key.upArrow) {
+				setSelectedTagIndex((i) => Math.max(i - 1, 0));
+				return;
+			} else if (key.return && episode.tags[selectedTagIndex]) {
+				navigate('episodes-list', {
+					tag: episode.tags[selectedTagIndex]!.slug,
+					tagName: episode.tags[selectedTagIndex]!.name,
+				});
+				return;
+			}
+		}
+
+		// Links tab: j/k to navigate links, o to open
+		if (currentKey === 'links') {
+			if (input === 'j' || key.downArrow) {
+				setSelectedLinkIndex((i) =>
+					Math.min(i + 1, episode.links.length - 1),
+				);
+				return;
+			} else if (input === 'k' || key.upArrow) {
+				setSelectedLinkIndex((i) => Math.max(i - 1, 0));
+				return;
+			} else if (input === 'o' && episode.links[selectedLinkIndex]) {
+				openUrl(episode.links[selectedLinkIndex]!.url);
+				return;
+			}
+		}
+
+		// Persons tab: j/k to navigate, o to open social links
+		if (currentKey === 'persons') {
+			if (input === 'j' || key.downArrow) {
+				setSelectedPersonIndex((i) =>
+					Math.min(i + 1, episode.persons.length - 1),
+				);
+				return;
+			} else if (input === 'k' || key.upArrow) {
+				setSelectedPersonIndex((i) => Math.max(i - 1, 0));
+				return;
+			} else if (key.return && episode.persons[selectedPersonIndex]) {
+				navigate('person-detail', {
+					id: episode.persons[selectedPersonIndex]!.id,
+				});
+				return;
+			}
+		}
+
 		if (input === 'l' || key.rightArrow) {
 			setActiveSection((i) => Math.min(i + 1, sections.length - 1));
+			setSelectedLinkIndex(0);
+			setSelectedPersonIndex(0);
+			setSelectedTagIndex(0);
 		} else if (input === 'h' || key.leftArrow) {
 			setActiveSection((i) => Math.max(i - 1, 0));
+			setSelectedLinkIndex(0);
+			setSelectedPersonIndex(0);
+			setSelectedTagIndex(0);
 		} else if (input === 't' && episode.hasTranscript) {
 			navigate('transcript', { slug, title: episode.title });
+		} else if (input === 'a') {
+			player.addToQueue({
+				slug,
+				title: episode.title,
+				durationSeconds: episode.durationSeconds,
+			});
+		} else if (input === 'b') {
+			toggleFavorite(
+				slug,
+				episode.title,
+				episode.seasonNumber,
+				episode.episodeNumber,
+			);
 		} else if (input === 'p') {
 			if (player.currentEpisodeSlug === slug && isActive()) {
 				stopPlayer();
 				player.stop();
 			} else {
 				player.setPlaying(slug, episode.title, episode.durationSeconds);
-				play(slug);
+				player.setChapters(
+					episode.chapters.map((c) => ({
+						title: c.title,
+						startTime: c.startTime,
+					})),
+				);
+				play(slug).then(() => {
+					// Auto-resume from last position
+					const entry = getHistoryEntry(slug);
+					if (
+						entry &&
+						!entry.completed &&
+						entry.position > 10 &&
+						entry.position < entry.duration - 60
+					) {
+						setTimeout(() => {
+							seekAbsolute(entry.position);
+							setResumeMessage(
+								`Hervat bij ${formatDuration(entry.position)}`,
+							);
+							setTimeout(() => setResumeMessage(null), 3000);
+						}, 1000);
+					}
+				});
 			}
-		} else if (
-			input === '[' &&
-			player.currentEpisodeSlug === slug &&
-			isActive() &&
-			episode.chapters.length > 0
-		) {
-			// Previous chapter
-			const pos = getPosition();
-			const prev = [...episode.chapters]
-				.reverse()
-				.find((c) => c.startTime < pos - 3);
-			if (prev) seekAbsolute(prev.startTime);
-		} else if (
-			input === ']' &&
-			player.currentEpisodeSlug === slug &&
-			isActive() &&
-			episode.chapters.length > 0
-		) {
-			// Next chapter
-			const pos = getPosition();
-			const next = episode.chapters.find((c) => c.startTime > pos + 1);
-			if (next) seekAbsolute(next.startTime);
-		} else if (input === '<' && player.currentEpisodeSlug === slug && isActive()) {
-			seek(-15);
-		} else if (input === '>' && player.currentEpisodeSlug === slug && isActive()) {
-			seek(15);
 		} else if (input === 'r' && error) {
 			refetch();
 		}
@@ -96,7 +177,6 @@ export function EpisodeDetailScreen() {
 	if (error) return <ErrorDisplay message={error} onRetry={refetch} />;
 	if (!episode) return null;
 
-	const currentKey = sections[activeSection]?.key;
 	const nowPlaying = player.currentEpisodeSlug === slug && isActive();
 
 	return (
@@ -113,6 +193,11 @@ export function EpisodeDetailScreen() {
 					<Text color={colors.cyan} bold>
 						{episode.title}
 					</Text>
+					{favorited && (
+						<Text color={colors.warning} bold>
+							★
+						</Text>
+					)}
 				</Box>
 				<Box gap={2}>
 					<Text color={colors.textSubtle}>
@@ -125,18 +210,46 @@ export function EpisodeDetailScreen() {
 				</Box>
 				{episode.tags.length > 0 && (
 					<Box gap={1}>
-						{episode.tags.map((t) => (
-							<TagPill key={t.slug} name={t.name} />
+						{episode.tags.map((t, i) => (
+							<Text
+								key={t.slug}
+								color={
+									i === selectedTagIndex && currentKey === 'info'
+										? colors.cyan
+										: colors.purple
+								}
+								bold={i === selectedTagIndex && currentKey === 'info'}
+							>
+								[{t.name}]
+							</Text>
 						))}
 					</Box>
 				)}
 			</Box>
+
+			{/* Resume message */}
+			{resumeMessage && (
+				<Box paddingBottom={1}>
+					<Text color={colors.success} bold>
+						{resumeMessage}
+					</Text>
+				</Box>
+			)}
 
 			{/* Action hints */}
 			<Box paddingBottom={1} gap={2}>
 				<Text color={colors.textSubtle}>
 					<Text color={colors.cyan}>p</Text>
 					{nowPlaying ? ' stop' : ' afspelen'}
+				</Text>
+				<Text color={colors.textSubtle}>
+					<Text color={colors.cyan}>a</Text> wachtrij
+					{player.queue.length > 0 &&
+						` (${player.queue.length})`}
+				</Text>
+				<Text color={colors.textSubtle}>
+					<Text color={colors.cyan}>b</Text>
+					{favorited ? ' ★' : ' favoriet'}
 				</Text>
 				{nowPlaying && (
 					<Text color={colors.textSubtle}>
@@ -151,6 +264,18 @@ export function EpisodeDetailScreen() {
 				{episode.hasTranscript && (
 					<Text color={colors.textSubtle}>
 						<Text color={colors.cyan}>t</Text> transcript
+					</Text>
+				)}
+				{nowPlaying && (
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>-+</Text> snelheid
+						{player.playbackSpeed !== 1 &&
+							` (${player.playbackSpeed}x)`}
+					</Text>
+				)}
+				{currentKey === 'links' && (
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>o</Text> openen
 					</Text>
 				)}
 			</Box>
@@ -208,29 +333,66 @@ export function EpisodeDetailScreen() {
 
 			{currentKey === 'persons' && (
 				<Box flexDirection="column">
-					{episode.persons.map((p) => (
-						<Box key={p.id} gap={1}>
-							<Text color={colors.text} bold>
-								{p.name}
-							</Text>
-							<Text color={colors.textSubtle}>({p.role})</Text>
-							{p.jobTitle && (
-								<Text color={colors.textMuted}>· {p.jobTitle}</Text>
-							)}
-						</Box>
-					))}
+					{episode.persons.map((p, i) => {
+						const isSelected = i === selectedPersonIndex;
+						return (
+							<Box key={p.id} gap={1}>
+								<Text
+									color={
+										isSelected
+											? colors.cyan
+											: colors.textSubtle
+									}
+								>
+									{isSelected ? '▸' : ' '}
+								</Text>
+								<Text
+									color={isSelected ? colors.cyan : colors.text}
+									bold={isSelected}
+								>
+									{p.name}
+								</Text>
+								<Text color={colors.textSubtle}>
+									({p.role})
+								</Text>
+								{p.jobTitle && (
+									<Text color={colors.textMuted}>
+										· {p.jobTitle}
+									</Text>
+								)}
+							</Box>
+						);
+					})}
 				</Box>
 			)}
 
 			{currentKey === 'links' && (
 				<Box flexDirection="column">
-					{episode.links.map((link, i) => (
-						<Box key={i} gap={1}>
-							<Text color={colors.purple}>•</Text>
-							<Text color={colors.text}>{link.title}</Text>
-							<Text color={colors.textSubtle}>{link.url}</Text>
-						</Box>
-					))}
+					{episode.links.map((link, i) => {
+						const isSelected = i === selectedLinkIndex;
+						return (
+							<Box key={i} gap={1}>
+								<Text
+									color={
+										isSelected
+											? colors.cyan
+											: colors.textSubtle
+									}
+								>
+									{isSelected ? '▸' : '•'}
+								</Text>
+								<Text
+									color={isSelected ? colors.cyan : colors.text}
+									bold={isSelected}
+								>
+									{link.title}
+								</Text>
+								<Text color={colors.textSubtle}>
+									{link.url}
+								</Text>
+							</Box>
+						);
+					})}
 				</Box>
 			)}
 		</ScreenContainer>

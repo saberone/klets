@@ -20,13 +20,20 @@ Toetsen:
   enter               Open item
   esc                 Terug
   q                   Afsluiten
+  ?                   Help (sneltoetsen)
   h/l                 Pagina / tabs
+  tab                 Wissel focus / tab
   f                   Filter (seizoen)
   s                   Sorteer
   p                   Afspelen / stoppen
+  space               Afspelen / pauzeren (globaal)
   < >                 Spoelen ±15s (mpv)
   [ ]                 Vorig / volgend hoofdstuk
+  - +                 Afspeelsnelheid
   t                   Transcript
+  o                   Link openen in browser
+  b                   Favoriet aan/uit
+  a                   Toevoegen aan wachtrij
   r                   Opnieuw laden (bij fout)
 
 Vereisten:

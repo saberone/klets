@@ -27,9 +27,14 @@ export function Footer() {
 					<Text color={colors.cyan}>enter</Text> open
 				</Text>
 			</Box>
-			<Text color={colors.textSubtle}>
-				<Text color={colors.cyan}>q</Text> stop
-			</Text>
+			<Box gap={2}>
+				<Text color={colors.textSubtle}>
+					<Text color={colors.cyan}>?</Text> help
+				</Text>
+				<Text color={colors.textSubtle}>
+					<Text color={colors.cyan}>q</Text> stop
+				</Text>
+			</Box>
 		</Box>
 	);
 }

@@ -23,10 +23,12 @@ export function TranscriptScreen() {
 	const { current } = useNavigation();
 	const slug = current.params?.['slug'] as string;
 	const title = (current.params?.['title'] as string) ?? slug;
+	const seekMs = current.params?.['seekMs'] as number | undefined;
 	const player = usePlayer();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [following, setFollowing] = useState(true);
 	const [activeSegmentIndex, setActiveSegmentIndex] = useState(-1);
+	const [didInitialSeek, setDidInitialSeek] = useState(false);
 	const followingRef = useRef(following);
 	followingRef.current = following;
 
@@ -38,6 +40,17 @@ export function TranscriptScreen() {
 	const segments = data?.data?.segments ?? [];
 	const isEpisodePlaying =
 		player.currentEpisodeSlug === slug && isActive();
+
+	// Seek to initial position from search result
+	useEffect(() => {
+		if (didInitialSeek || !seekMs || segments.length === 0) return;
+		setDidInitialSeek(true);
+		const idx = findSegmentAtTime(segments, seekMs);
+		if (idx >= 0) {
+			setSelectedIndex(idx);
+			setFollowing(false);
+		}
+	}, [seekMs, segments, didInitialSeek]);
 
 	// Poll player position and find matching segment
 	useEffect(() => {
