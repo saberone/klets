@@ -1,13 +1,24 @@
-import { exec } from 'node:child_process';
+import { spawn } from 'node:child_process';
 
 export function openUrl(url: string): void {
 	const platform = process.platform;
-	const cmd =
-		platform === 'darwin'
-			? 'open'
-			: platform === 'win32'
-				? 'start'
-				: 'xdg-open';
+	let cmd: string;
+	let args: string[];
 
-	exec(`${cmd} ${JSON.stringify(url)}`);
+	if (platform === 'darwin') {
+		cmd = 'open';
+		args = [url];
+	} else if (platform === 'win32') {
+		cmd = 'cmd';
+		args = ['/c', 'start', '', url];
+	} else {
+		cmd = 'xdg-open';
+		args = [url];
+	}
+
+	const child = spawn(cmd, args, {
+		stdio: 'ignore',
+		detached: true,
+	});
+	child.unref();
 }
