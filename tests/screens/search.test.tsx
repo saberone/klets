@@ -44,7 +44,7 @@ describe('SearchScreen', () => {
 		await delay(INK_INIT_DELAY);
 		await typeAndSubmit(stdin, 're');
 		await vi.waitFor(() => {
-			expect(lastFrame()).toContain('Geen resultaten');
+			expect(lastFrame()).toContain('Geen afleveringen');
 		});
 	});
 
@@ -69,7 +69,7 @@ describe('SearchScreen', () => {
 		await typeAndSubmit(stdin, 're');
 		await vi.waitFor(() => {
 			expect(lastFrame()).toContain('React Basics');
-			expect(lastFrame()).toContain('1 resultaten');
+			expect(lastFrame()).toContain('Afleveringen (1)');
 		});
 	});
 
@@ -81,7 +81,7 @@ describe('SearchScreen', () => {
 		await delay(INK_INIT_DELAY);
 		await typeAndSubmit(stdin, 'xyz');
 		await vi.waitFor(() => {
-			expect(lastFrame()).toContain('Geen resultaten');
+			expect(lastFrame()).toContain('Geen afleveringen');
 		});
 	});
 });
