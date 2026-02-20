@@ -4,8 +4,11 @@ import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 
 export function Footer() {
-	const { stack } = useNavigation();
+	const { stack, current } = useNavigation();
 	const canGoBack = stack.length > 1;
+	const isDetail =
+		current.screen === 'episode-detail' ||
+		current.screen === 'person-detail';
 
 	return (
 		<Box
@@ -23,9 +26,11 @@ export function Footer() {
 				<Text color={colors.textSubtle}>
 					<Text color={colors.cyan}>j/k</Text> navigeer
 				</Text>
-				<Text color={colors.textSubtle}>
-					<Text color={colors.cyan}>enter</Text> open
-				</Text>
+				{!isDetail && (
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>enter</Text> open
+					</Text>
+				)}
 			</Box>
 			<Box gap={2}>
 				<Text color={colors.textSubtle}>
