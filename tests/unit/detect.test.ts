@@ -6,18 +6,31 @@ vi.mock('node:child_process', () => ({
 	execSync: vi.fn(),
 }));
 
+vi.mock('../../src/player/backends/klets-audio.js', () => ({
+	isAvailable: vi.fn(() => false),
+}));
+
 const mockExecSync = vi.mocked(execSync);
+const { isAvailable: mockIsAvailable } = await import(
+	'../../src/player/backends/klets-audio.js'
+);
 
 describe('detectBackend', () => {
 	beforeEach(() => {
 		mockExecSync.mockReset();
+		vi.mocked(mockIsAvailable).mockReturnValue(false);
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	it('returns mpv when available', () => {
+	it('returns klets-audio when available', () => {
+		vi.mocked(mockIsAvailable).mockReturnValue(true);
+		expect(detectBackend()).toBe('klets-audio');
+	});
+
+	it('returns mpv when available and klets-audio is not', () => {
 		mockExecSync.mockImplementation((cmd) => {
 			if (typeof cmd === 'string' && cmd.includes('mpv')) return Buffer.from('');
 			throw new Error('not found');
@@ -37,7 +50,6 @@ describe('detectBackend', () => {
 		mockExecSync.mockImplementation(() => {
 			throw new Error('not found');
 		});
-		// afplay check also depends on platform — on non-darwin, all fail
 		const originalPlatform = Object.getOwnPropertyDescriptor(
 			process,
 			'platform',
