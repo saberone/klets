@@ -114,6 +114,11 @@ jobs:
         with:
           path: packages/
 
+      - name: Fix binary permissions (lost in artifact upload)
+        run: |
+          chmod +x packages/audio-*/bin/klets-audio || true
+          chmod +x packages/audio-*/bin/klets-audio.exe || true
+
       - name: Publish platform packages
         run: |
           for pkg in packages/audio-*/; do

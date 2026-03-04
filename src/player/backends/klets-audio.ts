@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { connect, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { unlinkSync, readFileSync } from 'node:fs';
+import { unlinkSync, readFileSync, chmodSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const SOCKET_PATH = join(tmpdir(), `klets-audio-${process.pid}.sock`);
@@ -44,7 +44,12 @@ function resolveBinary(): string | null {
 		const pkgJson = require.resolve(`${pkgName}/package.json`);
 		const pkgDir = pkgJson.replace(/\/package\.json$/, '');
 		const ext = platform === 'win32' ? '.exe' : '';
-		return join(pkgDir, `bin/klets-audio${ext}`);
+		const binPath = join(pkgDir, `bin/klets-audio${ext}`);
+		// Ensure the binary is executable (npm may not preserve permissions)
+		if (platform !== 'win32') {
+			try { chmodSync(binPath, 0o755); } catch { /* ignore */ }
+		}
+		return binPath;
 	} catch {
 		return null;
 	}
