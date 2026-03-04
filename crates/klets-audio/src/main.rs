@@ -6,7 +6,11 @@ use clap::Parser;
 use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+
+#[cfg(unix)]
 use tokio::net::UnixListener;
+#[cfg(windows)]
+use tokio::net::TcpListener;
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -139,9 +143,6 @@ const AVG_MP3_BITRATE: u64 = 128_000;
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let cli = Cli::parse();
-    let _ = std::fs::remove_file(&cli.socket);
-
-    let listener = UnixListener::bind(&cli.socket).expect("failed to bind Unix socket");
 
     // OutputStream must stay alive on the main thread for audio to work.
     // Sink is Send + Sync and can be shared with background threads.
@@ -151,43 +152,77 @@ async fn main() {
 
     let state = Arc::new(Mutex::new(State::default()));
 
-    loop {
-        let (conn, _) = match listener.accept().await {
-            Ok(v) => v,
-            Err(_) => continue,
+    #[cfg(unix)]
+    {
+        let _ = std::fs::remove_file(&cli.socket);
+        let listener = UnixListener::bind(&cli.socket).expect("failed to bind Unix socket");
+        loop {
+            let (conn, _) = match listener.accept().await {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            handle_connection(conn, &sink, &state, &cli.socket).await;
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("failed to bind TCP listener");
+        let port = listener.local_addr().unwrap().port();
+        // Write the chosen port to the socket path so Node.js can connect via TCP
+        std::fs::write(&cli.socket, port.to_string()).expect("failed to write port file");
+        loop {
+            let (conn, _) = match listener.accept().await {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            handle_connection(conn, &sink, &state, &cli.socket).await;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Connection handler — works with any AsyncRead + AsyncWrite stream
+// ---------------------------------------------------------------------------
+
+async fn handle_connection(
+    stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite,
+    sink: &Arc<Sink>,
+    state: &Arc<Mutex<State>>,
+    socket_path: &str,
+) {
+    let (read_half, mut write_half) = tokio::io::split(stream);
+    let mut lines = tokio::io::BufReader::new(read_half).lines();
+
+    while let Ok(Some(line)) = lines.next_line().await {
+        let req: Request = match serde_json::from_str(&line) {
+            Ok(r) => r,
+            Err(e) => {
+                let resp = Response {
+                    id: 0,
+                    ok: None,
+                    error: Some(format!("parse error: {e}")),
+                    state: None,
+                };
+                let mut buf = serde_json::to_string(&resp).unwrap();
+                buf.push('\n');
+                let _ = write_half.write_all(buf.as_bytes()).await;
+                continue;
+            }
         };
 
-        let (read_half, mut write_half) = tokio::io::split(conn);
-        let mut lines = tokio::io::BufReader::new(read_half).lines();
+        let is_quit = req.cmd == "quit";
+        let resp = handle_request(&req, sink, state);
 
-        while let Ok(Some(line)) = lines.next_line().await {
-            let req: Request = match serde_json::from_str(&line) {
-                Ok(r) => r,
-                Err(e) => {
-                    let resp = Response {
-                        id: 0,
-                        ok: None,
-                        error: Some(format!("parse error: {e}")),
-                        state: None,
-                    };
-                    let mut buf = serde_json::to_string(&resp).unwrap();
-                    buf.push('\n');
-                    let _ = write_half.write_all(buf.as_bytes()).await;
-                    continue;
-                }
-            };
+        let mut buf = serde_json::to_string(&resp).unwrap();
+        buf.push('\n');
+        let _ = write_half.write_all(buf.as_bytes()).await;
 
-            let is_quit = req.cmd == "quit";
-            let resp = handle_request(&req, &sink, &state);
-
-            let mut buf = serde_json::to_string(&resp).unwrap();
-            buf.push('\n');
-            let _ = write_half.write_all(buf.as_bytes()).await;
-
-            if is_quit {
-                let _ = std::fs::remove_file(&cli.socket);
-                std::process::exit(0);
-            }
+        if is_quit {
+            let _ = std::fs::remove_file(socket_path);
+            std::process::exit(0);
         }
     }
 }

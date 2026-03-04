@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { connect, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { unlinkSync } from 'node:fs';
+import { unlinkSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const SOCKET_PATH = join(tmpdir(), `klets-audio-${process.pid}.sock`);
@@ -99,7 +99,21 @@ export function play(url: string, startSeconds = 0): boolean {
 function connectSocket(onConnect?: () => void) {
 	if (!proc || proc.exitCode !== null) return;
 
-	socket = connect(SOCKET_PATH);
+	if (process.platform === 'win32') {
+		// On Windows, klets-audio writes a TCP port to the socket file
+		try {
+			const port = parseInt(readFileSync(SOCKET_PATH, 'utf-8').trim(), 10);
+			socket = connect({ port, host: '127.0.0.1' });
+		} catch {
+			// Port file not ready yet — retry
+			if (proc && proc.exitCode === null) {
+				setTimeout(() => connectSocket(onConnect), 200);
+			}
+			return;
+		}
+	} else {
+		socket = connect(SOCKET_PATH);
+	}
 
 	socket.on('connect', () => {
 		onConnect?.();
