@@ -88,6 +88,7 @@ jobs:
         run: |
           cp crates/klets-audio/target/${{ matrix.target }}/release/${{ matrix.binary }} \
              packages/${{ matrix.package }}/bin/${{ matrix.binary }}
+          chmod +x packages/${{ matrix.package }}/bin/${{ matrix.binary }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
