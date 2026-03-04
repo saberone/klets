@@ -1,6 +1,6 @@
 {
 	"name": "@klets/audio-win32-arm64",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "klets-audio binary for Windows ARM64",
 	"license": "MIT",
 	"repository": {
