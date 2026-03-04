@@ -52,7 +52,7 @@ export function PlayerBar() {
 	const playing = isActive();
 	const icon = playing ? '▶' : '■';
 	const backend = getDetectedBackend();
-	const showPosition = backend === 'mpv' && position > 0;
+	const showPosition = backend !== null && position > 0;
 
 	// Full inner width: terminal minus border (2) and paddingX (2)
 	const barWidth = columns - 4;

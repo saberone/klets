@@ -6,7 +6,7 @@ import { useNavigation } from '../hooks/use-navigation.js';
 import { usePlayer } from '../hooks/use-player.js';
 import { useApi } from '../hooks/use-api.js';
 import { getEpisode } from '../api/episodes.js';
-import { play, stop as stopPlayer, isActive, seekAbsolute } from '../player/index.js';
+import { play, stop as stopPlayer, isActive } from '../player/index.js';
 import { openUrl } from '../utils/open-url.js';
 import { useStore } from '../store/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
@@ -129,6 +129,7 @@ export function EpisodeDetailScreen() {
 				slug,
 				title: episode.title,
 				durationSeconds: episode.durationSeconds,
+				audioUrl: episode.audioUrl,
 			});
 		} else if (input === 'b') {
 			toggleFavorite(
@@ -142,6 +143,16 @@ export function EpisodeDetailScreen() {
 				stopPlayer();
 				player.stop();
 			} else {
+				// Check for resume position before starting playback
+				const entry = getHistoryEntry(slug);
+				const resumePos =
+					entry &&
+					!entry.completed &&
+					entry.position > 10 &&
+					entry.position < entry.duration - 60
+						? entry.position
+						: 0;
+
 				player.setPlaying(slug, episode.title, episode.durationSeconds);
 				player.setChapters(
 					episode.chapters.map((c) => ({
@@ -149,22 +160,12 @@ export function EpisodeDetailScreen() {
 						startTime: c.startTime,
 					})),
 				);
-				play(slug).then(() => {
-					// Auto-resume from last position
-					const entry = getHistoryEntry(slug);
-					if (
-						entry &&
-						!entry.completed &&
-						entry.position > 10 &&
-						entry.position < entry.duration - 60
-					) {
-						setTimeout(() => {
-							seekAbsolute(entry.position);
-							setResumeMessage(
-								`Hervat bij ${formatDuration(entry.position)}`,
-							);
-							setTimeout(() => setResumeMessage(null), 3000);
-						}, 1000);
+				play(episode.audioUrl, resumePos).then(() => {
+					if (resumePos > 0) {
+						setResumeMessage(
+							`Hervat bij ${formatDuration(resumePos)}`,
+						);
+						setTimeout(() => setResumeMessage(null), 3000);
 					}
 				});
 			}

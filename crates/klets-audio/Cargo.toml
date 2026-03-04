@@ -1,0 +1,23 @@
+[package]
+name = "klets-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Audio player binary for klets CLI — streams MP3 over HTTP with IPC control"
+license = "MIT"
+
+[[bin]]
+name = "klets-audio"
+path = "src/main.rs"
+
+[dependencies]
+rodio = { version = "0.20", default-features = false, features = ["symphonia-mp3"] }
+ureq = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "net", "io-util", "macros"] }
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

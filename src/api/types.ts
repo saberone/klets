@@ -65,6 +65,7 @@ export interface EpisodeListItem {
 	durationSeconds: number;
 	publishedAt: string;
 	artworkUrl: string | null;
+	audioUrl: string;
 	tags: Tag[];
 	persons: PersonSummary[];
 	hasTranscript: boolean;
@@ -108,6 +109,7 @@ export interface EpisodeDetail {
 	explicit: boolean;
 	publishedAt: string;
 	artworkUrl: string | null;
+	audioUrl: string;
 	tags: Tag[];
 	persons: EpisodePersonDetail[];
 	chapters: Chapter[];

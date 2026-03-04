@@ -47,8 +47,17 @@
     "ink": "^6.7.0",
     "ink-gradient": "^4.0.0",
     "ink-spinner": "^5.0.0",
+    "mpg123-decoder": "^1.0.0",
     "react": "^19.2.4",
     "zustand": "^5.0.11"
+  },
+  "optionalDependencies": {
+    "@klets/audio-darwin-arm64": "0.1.0",
+    "@klets/audio-darwin-x64": "0.1.0",
+    "@klets/audio-linux-x64-gnu": "0.1.0",
+    "@klets/audio-linux-arm64-gnu": "0.1.0",
+    "@klets/audio-win32-x64": "0.1.0",
+    "@klets/audio-win32-arm64": "0.1.0"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

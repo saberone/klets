@@ -4,6 +4,7 @@ export interface QueueItem {
 	slug: string;
 	title: string;
 	durationSeconds: number;
+	audioUrl: string;
 }
 
 export interface ChapterInfo {

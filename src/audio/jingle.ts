@@ -2,7 +2,7 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
-import { detectBackend } from '../player/detect.js';
+import { commandExists } from '../player/detect.js';
 
 const SAMPLE_RATE = 11025;
 
@@ -193,29 +193,30 @@ export function generateJingle(): Buffer {
 	return createWav(mixed, SAMPLE_RATE);
 }
 
-export function playJingle(): void {
+/**
+ * Detect a command-line player that can play a WAV file.
+ * klets-audio only handles MP3 URLs, so for the jingle we use a local player.
+ */
+function detectJinglePlayer(): { cmd: string; args: (wavPath: string) => string[] } | null {
+	if (commandExists('mpv'))
+		return { cmd: 'mpv', args: (p) => ['--no-terminal', '--really-quiet', p] };
+	if (commandExists('ffplay'))
+		return { cmd: 'ffplay', args: (p) => ['-nodisp', '-autoexit', '-loglevel', 'quiet', p] };
+	if (process.platform === 'darwin' && commandExists('afplay'))
+		return { cmd: 'afplay', args: (p) => [p] };
+	return null;
+}
+
+export async function playJingle(): Promise<void> {
 	try {
-		const backend = detectBackend();
-		if (!backend) return;
+		const player = detectJinglePlayer();
+		if (!player) return;
 
 		const wavPath = join(tmpdir(), 'klets-jingle.wav');
 		const wav = generateJingle();
 		writeFileSync(wavPath, wav);
 
-		let args: string[];
-		switch (backend) {
-			case 'mpv':
-				args = ['--no-terminal', '--really-quiet', wavPath];
-				break;
-			case 'ffplay':
-				args = ['-nodisp', '-autoexit', '-loglevel', 'quiet', wavPath];
-				break;
-			case 'afplay':
-				args = [wavPath];
-				break;
-		}
-
-		const child = spawn(backend, args, { stdio: 'ignore' });
+		const child = spawn(player.cmd, player.args(wavPath), { stdio: 'ignore' });
 		child.unref();
 
 		child.on('exit', () => {

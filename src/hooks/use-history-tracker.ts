@@ -34,7 +34,7 @@ export function useHistoryTracker() {
 				const next = playNext();
 				if (next) {
 					setPlaying(next.slug, next.title, next.durationSeconds);
-					play(next.slug);
+					play(next.audioUrl);
 				} else {
 					stop();
 				}

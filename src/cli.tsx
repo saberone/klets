@@ -36,9 +36,9 @@ Toetsen:
   a                   Toevoegen aan wachtrij
   r                   Opnieuw laden (bij fout)
 
-Vereisten:
-  Node.js >= 18
-  Audio: mpv (aanbevolen), ffplay, of afplay (macOS)`);
+Audio:
+  Ingebouwde audio (geen externe tools nodig)
+  Optioneel: mpv voor spoelen en snelheid`);
 	process.exit(0);
 }
 
@@ -46,6 +46,8 @@ const React = await import('react');
 const { render } = await import('ink');
 const { App } = await import('./app.js');
 const { playJingle } = await import('./audio/jingle.js');
+const { initBackend } = await import('./player/index.js');
 
+await initBackend();
 playJingle();
 render(React.createElement(App));

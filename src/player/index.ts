@@ -1,6 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process';
-import { detectBackend, type Backend } from './detect.js';
-import { getAudioUrl } from './rss.js';
+import { detectBackendAsync, type Backend } from './detect.js';
 import {
 	startMpv,
 	stopMpv,
@@ -11,102 +9,157 @@ import {
 	getDurationMpv,
 	setSpeedMpv,
 } from './mpv-ipc.js';
+import * as kletsAudioBackend from './backends/klets-audio.js';
+import * as pcmPipeBackend from './backends/pcm-pipe.js';
+import * as commandBackend from './backends/command.js';
 
-let proc: ChildProcess | null = null;
 let detectedBackend: Backend | null | undefined = undefined;
 let activeBackend: Backend | null = null;
 
+export async function initBackend(): Promise<void> {
+	detectedBackend = await detectBackendAsync();
+}
+
 export function getDetectedBackend(): Backend | null {
-	if (detectedBackend === undefined) {
-		detectedBackend = detectBackend();
-	}
+	if (detectedBackend === undefined) return null;
 	return detectedBackend;
 }
 
-export async function play(slug: string): Promise<boolean> {
-	const backend = getDetectedBackend();
+export async function play(
+	audioUrl: string,
+	startSeconds = 0,
+): Promise<boolean> {
+	if (detectedBackend === undefined) await initBackend();
+	const backend = detectedBackend;
 	if (!backend) return false;
-
-	const url = await getAudioUrl(slug);
-	if (!url) return false;
 
 	stop();
 	activeBackend = backend;
-
-	if (backend === 'mpv') {
-		return startMpv(url);
-	}
+	const url = audioUrl;
 
 	switch (backend) {
+		case 'klets-audio':
+			return kletsAudioBackend.play(url, startSeconds);
+
+		case 'mpv':
+			return startMpv(url);
+
+		case 'pcm-pipe':
+			return pcmPipeBackend.play(url, startSeconds);
+
 		case 'ffplay':
-			proc = spawn(
-				'ffplay',
-				['-nodisp', '-autoexit', '-loglevel', 'quiet', url],
-				{ stdio: 'ignore', detached: false },
-			);
-			break;
+			return commandBackend.play(url, 'ffplay', 0);
+
 		case 'afplay':
-			proc = spawn('afplay', [url], {
-				stdio: 'ignore',
-				detached: false,
-			});
-			break;
+			return commandBackend.play(url, 'afplay', 0);
 	}
-
-	proc.on('error', () => {
-		proc = null;
-	});
-	proc.on('exit', () => {
-		proc = null;
-	});
-
-	return true;
 }
 
 export function stop(): void {
-	if (activeBackend === 'mpv') {
-		stopMpv();
-	}
-	if (proc) {
-		proc.kill();
-		proc = null;
+	switch (activeBackend) {
+		case 'klets-audio':
+			kletsAudioBackend.stop();
+			break;
+		case 'mpv':
+			stopMpv();
+			break;
+		case 'pcm-pipe':
+			pcmPipeBackend.stopSync();
+			break;
+		case 'ffplay':
+		case 'afplay':
+			commandBackend.stop();
+			break;
 	}
 	activeBackend = null;
 }
 
 export function isActive(): boolean {
-	if (activeBackend === 'mpv') return isMpvActive();
-	return proc !== null && proc.exitCode === null;
+	switch (activeBackend) {
+		case 'klets-audio':
+			return kletsAudioBackend.isActive();
+		case 'mpv':
+			return isMpvActive();
+		case 'pcm-pipe':
+			return pcmPipeBackend.isActive();
+		case 'ffplay':
+		case 'afplay':
+			return commandBackend.isActive();
+		default:
+			return false;
+	}
 }
 
 export function seek(seconds: number): void {
-	if (activeBackend === 'mpv') {
-		seekMpv(seconds);
+	switch (activeBackend) {
+		case 'klets-audio':
+			kletsAudioBackend.seek(seconds);
+			break;
+		case 'mpv':
+			seekMpv(seconds);
+			break;
+		case 'pcm-pipe':
+			pcmPipeBackend.seekTo(getPosition() + seconds);
+			break;
 	}
-	// ffplay/afplay don't support seeking
 }
 
 export function seekAbsolute(seconds: number): void {
-	if (activeBackend === 'mpv') {
-		seekAbsoluteMpv(seconds);
+	switch (activeBackend) {
+		case 'klets-audio':
+			kletsAudioBackend.seekTo(seconds);
+			break;
+		case 'mpv':
+			seekAbsoluteMpv(seconds);
+			break;
+		case 'pcm-pipe':
+			pcmPipeBackend.seekTo(seconds);
+			break;
 	}
 }
 
 export function getPosition(): number {
-	if (activeBackend === 'mpv') return getPositionMpv();
-	return 0;
+	switch (activeBackend) {
+		case 'klets-audio':
+			return kletsAudioBackend.getPosition();
+		case 'mpv':
+			return getPositionMpv();
+		case 'pcm-pipe':
+			return pcmPipeBackend.getPosition();
+		case 'ffplay':
+		case 'afplay':
+			return commandBackend.getPosition();
+		default:
+			return 0;
+	}
 }
 
 export function getDuration(): number {
-	if (activeBackend === 'mpv') return getDurationMpv();
-	return 0;
+	switch (activeBackend) {
+		case 'klets-audio':
+			return kletsAudioBackend.getDuration();
+		case 'mpv':
+			return getDurationMpv();
+		case 'pcm-pipe':
+			return pcmPipeBackend.getDuration();
+		case 'ffplay':
+		case 'afplay':
+			return commandBackend.getDuration();
+		default:
+			return 0;
+	}
 }
 
 export function setSpeed(speed: number): void {
-	if (activeBackend === 'mpv') {
-		setSpeedMpv(speed);
+	switch (activeBackend) {
+		case 'klets-audio':
+			kletsAudioBackend.setSpeed(speed);
+			break;
+		case 'mpv':
+			setSpeedMpv(speed);
+			break;
 	}
-	// ffplay/afplay don't support speed control
+	// Other backends don't support speed control
 }
 
 export { type Backend } from './detect.js';
