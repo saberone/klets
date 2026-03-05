@@ -1,5 +1,11 @@
 # klets
 
+## 0.5.1
+
+### Patch Changes
+
+- 5e11470: Fix klets-audio binary not being executable after npm install
+
 ## 0.5.0
 
 ### Minor Changes
