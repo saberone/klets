@@ -13,11 +13,12 @@ export function Footer() {
 	const [quote, setQuote] = useState<Quote | null>(null);
 
 	useEffect(() => {
-		getRandomQuote().then(setQuote);
+		let cancelled = false;
+		getRandomQuote().then((q) => { if (!cancelled) setQuote(q); });
 		const interval = setInterval(() => {
-			getRandomQuote().then(setQuote);
-		}, 30_000); // Rotate every 30s
-		return () => clearInterval(interval);
+			getRandomQuote().then((q) => { if (!cancelled) setQuote(q); });
+		}, 30_000);
+		return () => { cancelled = true; clearInterval(interval); };
 	}, []);
 
 	return (
