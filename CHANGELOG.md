@@ -1,5 +1,11 @@
 # klets
 
+## 0.6.0
+
+### Minor Changes
+
+- b2900c6: Add 5 new features: Hoogtepunten (featured moments explorer), topic summaries, search suggestions, platform links on episodes, and rotating easter egg quotes in footer
+
 ## 0.5.1
 
 ### Patch Changes
