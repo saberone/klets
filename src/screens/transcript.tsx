@@ -5,8 +5,8 @@ import { useNavigation } from '../hooks/use-navigation.js';
 import { usePlayer } from '../hooks/use-player.js';
 import { useApi } from '../hooks/use-api.js';
 import { useScrollableList } from '../hooks/use-scrollable-list.js';
-import { getTranscript } from '../api/episodes.js';
-import { isActive, getPosition, seekAbsolute } from '../player/index.js';
+import { getTranscript, getEpisode } from '../api/episodes.js';
+import { isActive, getPosition, seekAbsolute, play } from '../player/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
@@ -85,8 +85,24 @@ export function TranscriptScreen() {
 		} else if (input === 'k' || key.upArrow) {
 			setFollowing(false);
 			setSelectedIndex((i) => Math.max(i - 1, 0));
-		} else if (key.return && isEpisodePlaying && segments[selectedIndex]) {
-			seekAbsolute(segments[selectedIndex]!.startTimeMs / 1000);
+		} else if (key.return && segments[selectedIndex]) {
+			const startSec = segments[selectedIndex]!.startTimeMs / 1000;
+			if (isEpisodePlaying) {
+				seekAbsolute(startSec);
+			} else {
+				getEpisode(slug).then((res) => {
+					const ep = res.data;
+					if (!ep) return;
+					player.setPlaying(slug, ep.title, ep.durationSeconds);
+					player.setChapters(
+						ep.chapters.map((c) => ({
+							title: c.title,
+							startTime: c.startTime,
+						})),
+					);
+					play(ep.audioUrl, startSec);
+				});
+			}
 			setFollowing(true);
 		} else if (input === 'f' && isEpisodePlaying) {
 			setFollowing(true);
@@ -197,11 +213,10 @@ export function TranscriptScreen() {
 						<Text color={colors.textSubtle}>
 							<Text color={colors.cyan}>j/k</Text> scrollen
 						</Text>
-						{isEpisodePlaying && (
-							<Text color={colors.textSubtle}>
-								<Text color={colors.cyan}>enter</Text> spring naar
-							</Text>
-						)}
+						<Text color={colors.textSubtle}>
+							<Text color={colors.cyan}>enter</Text>{' '}
+							{isEpisodePlaying ? 'spring naar' : 'afspelen'}
+						</Text>
 						{isEpisodePlaying && !following && (
 							<Text color={colors.textSubtle}>
 								<Text color={colors.cyan}>f</Text> volg afspelen
