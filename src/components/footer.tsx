@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
+import { getRandomQuote, type Quote } from '../api/quotes.js';
 
 export function Footer() {
 	const { stack, current } = useNavigation();
@@ -9,37 +10,55 @@ export function Footer() {
 	const isDetail =
 		current.screen === 'episode-detail' ||
 		current.screen === 'person-detail';
+	const [quote, setQuote] = useState<Quote | null>(null);
+
+	useEffect(() => {
+		getRandomQuote().then(setQuote);
+		const interval = setInterval(() => {
+			getRandomQuote().then(setQuote);
+		}, 30_000); // Rotate every 30s
+		return () => clearInterval(interval);
+	}, []);
 
 	return (
 		<Box
 			borderStyle="single"
 			borderColor={colors.border}
 			paddingX={1}
-			justifyContent="space-between"
+			flexDirection="column"
 		>
-			<Box gap={2}>
-				{canGoBack && (
+			<Box justifyContent="space-between">
+				<Box gap={2}>
+					{canGoBack && (
+						<Text color={colors.textSubtle}>
+							<Text color={colors.cyan}>esc</Text> terug
+						</Text>
+					)}
 					<Text color={colors.textSubtle}>
-						<Text color={colors.cyan}>esc</Text> terug
+						<Text color={colors.cyan}>j/k</Text> navigeer
 					</Text>
-				)}
-				<Text color={colors.textSubtle}>
-					<Text color={colors.cyan}>j/k</Text> navigeer
-				</Text>
-				{!isDetail && (
+					{!isDetail && (
+						<Text color={colors.textSubtle}>
+							<Text color={colors.cyan}>enter</Text> open
+						</Text>
+					)}
+				</Box>
+				<Box gap={2}>
 					<Text color={colors.textSubtle}>
-						<Text color={colors.cyan}>enter</Text> open
+						<Text color={colors.cyan}>?</Text> help
 					</Text>
-				)}
+					<Text color={colors.textSubtle}>
+						<Text color={colors.cyan}>q</Text> stop
+					</Text>
+				</Box>
 			</Box>
-			<Box gap={2}>
-				<Text color={colors.textSubtle}>
-					<Text color={colors.cyan}>?</Text> help
-				</Text>
-				<Text color={colors.textSubtle}>
-					<Text color={colors.cyan}>q</Text> stop
-				</Text>
-			</Box>
+			{quote && (
+				<Box>
+					<Text color={colors.textSubtle} italic>
+						&quot;{quote.text}&quot; — {quote.attribution}
+					</Text>
+				</Box>
+			)}
 		</Box>
 	);
 }

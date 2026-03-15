@@ -16,6 +16,7 @@ const screenLabels: Record<ScreenName, string> = {
 	search: 'Zoeken',
 	help: 'Help',
 	favorites: 'Favorieten',
+	moments: 'Hoogtepunten',
 };
 
 export function Header() {

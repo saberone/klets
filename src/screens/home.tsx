@@ -33,7 +33,8 @@ interface MenuItem {
 		| 'topics-list'
 		| 'persons-list'
 		| 'search'
-		| 'favorites';
+		| 'favorites'
+		| 'moments';
 	description: string;
 }
 
@@ -42,6 +43,11 @@ const menuItems: MenuItem[] = [
 		label: 'Afleveringen',
 		screen: 'episodes-list',
 		description: 'Bekijk alle afleveringen',
+	},
+	{
+		label: 'Hoogtepunten',
+		screen: 'moments',
+		description: 'Beste momenten uit de podcast',
 	},
 	{
 		label: 'Onderwerpen',

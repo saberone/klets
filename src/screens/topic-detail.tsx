@@ -53,6 +53,14 @@ export function TopicDetailScreen() {
 				</Text>
 			</Box>
 
+			{topic.summary && (
+				<Box paddingBottom={1}>
+					<Text color={colors.textMuted} italic>
+						{topic.summary}
+					</Text>
+				</Box>
+			)}
+
 			{episodes.length === 0 ? (
 				<EmptyState message="Geen afleveringen voor dit onderwerp." />
 			) : (

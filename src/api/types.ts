@@ -115,6 +115,7 @@ export interface EpisodeDetail {
 	chapters: Chapter[];
 	learningPoints: LearningPoint[];
 	links: EpisodeLink[];
+	platformLinks: PlatformLink[];
 	hasTranscript: boolean;
 }
 
@@ -146,6 +147,7 @@ export interface TopicDetail {
 	name: string;
 	slug: string;
 	episodeCount: number;
+	summary: string | null;
 	episodes: EpisodeListItem[];
 }
 
@@ -175,6 +177,36 @@ export interface SearchTranscriptResult {
 export interface SearchData {
 	episodes: SearchEpisodeResult[];
 	transcripts: SearchTranscriptResult[];
+}
+
+// ── Featured Moments ────────────────────────────────────────
+export interface Moment {
+	id: number;
+	title: string;
+	description: string | null;
+	episodeSlug: string;
+	episodeTitle: string;
+	startTimeMs: number;
+	endTimeMs: number;
+	tag: Tag | null;
+}
+
+// ── Search Suggestions ─────────────────────────────────────
+export interface SearchSuggestion {
+	term: string;
+	featured: boolean;
+}
+
+// ── Platform Links ─────────────────────────────────────────
+export interface PlatformLink {
+	platform: string;
+	url: string;
+}
+
+// ── Easter Egg Quotes ──────────────────────────────────────
+export interface Quote {
+	text: string;
+	attribution: string;
 }
 
 // ── Query params ────────────────────────────────────────────

@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { search as searchApi } from '../api/search.js';
+import { getSearchSuggestions } from '../api/search-suggestions.js';
+import { useApi } from '../hooks/use-api.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
 import { formatEpisodeNumber } from '../theme/format.js';
-import type { SearchData } from '../api/types.js';
+import type { SearchData, SearchSuggestion, SingleResponse } from '../api/types.js';
 
 type ResultTab = 'episodes' | 'transcripts';
 
@@ -22,11 +24,20 @@ export function SearchScreen() {
 	const [query, setQuery] = useState('');
 	const [submitted, setSubmitted] = useState('');
 	const [selectedIndex, setSelectedIndex] = useState(0);
+	const [suggestionIndex, setSuggestionIndex] = useState(0);
 	const [activeTab, setActiveTab] = useState<ResultTab>('episodes');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [results, setResults] = useState<SearchData | null>(null);
 	const { navigate } = useNavigation();
+
+	const suggestionsFetcher = useCallback(() => getSearchSuggestions(10), []);
+	const { data: suggestionsData } = useApi<SingleResponse<SearchSuggestion[]>>(
+		suggestionsFetcher,
+		'search-suggestions',
+		60 * 60 * 1000, // 1 hour cache
+	);
+	const suggestions = suggestionsData?.data ?? [];
 
 	useEffect(() => {
 		if (!submitted) return;
@@ -55,7 +66,27 @@ export function SearchScreen() {
 	const transcripts = results?.transcripts ?? [];
 	const currentItems = activeTab === 'episodes' ? episodes : transcripts;
 
+	const showSuggestions = !submitted && query.length === 0 && suggestions.length > 0;
+
 	useInput((input, key) => {
+		// Suggestion navigation when no query typed
+		if (showSuggestions && !submitted) {
+			if (input === 'j' || key.downArrow) {
+				setSuggestionIndex((i) => Math.min(i + 1, suggestions.length - 1));
+				return;
+			} else if (input === 'k' || key.upArrow) {
+				setSuggestionIndex((i) => Math.max(i - 1, 0));
+				return;
+			} else if (key.return && suggestions[suggestionIndex]) {
+				const term = suggestions[suggestionIndex]!.term;
+				setQuery(term);
+				setSubmitted(term);
+				setSelectedIndex(0);
+				setActiveTab('episodes');
+				return;
+			}
+		}
+
 		if (key.return && query.length >= 2 && !submitted) {
 			setSubmitted(query);
 			setSelectedIndex(0);
@@ -119,10 +150,47 @@ export function SearchScreen() {
 				</Text>
 			</Box>
 
-			{!submitted && (
+			{!submitted && !showSuggestions && (
 				<Text color={colors.textSubtle}>
 					Typ minimaal 2 tekens en druk op enter
 				</Text>
+			)}
+
+			{showSuggestions && (
+				<Box flexDirection="column" paddingTop={1}>
+					<Text color={colors.textMuted} bold>
+						Suggesties:
+					</Text>
+					<Box flexDirection="column" paddingTop={1}>
+						{suggestions.map((s, i) => {
+							const isSelected = i === suggestionIndex;
+							return (
+								<Box key={s.term} gap={1} paddingLeft={1}>
+									<Text
+										color={
+											isSelected
+												? colors.cyan
+												: colors.textSubtle
+										}
+									>
+										{isSelected ? '▸' : ' '}
+									</Text>
+									<Text
+										color={
+											isSelected ? colors.cyan : colors.text
+										}
+										bold={isSelected}
+									>
+										{s.term}
+									</Text>
+									{s.featured && (
+										<Text color={colors.warning}>★</Text>
+									)}
+								</Box>
+							);
+						})}
+					</Box>
+				</Box>
 			)}
 
 			{submitted && loading && <Loading message="Zoeken..." />}
