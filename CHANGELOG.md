@@ -1,5 +1,11 @@
 # klets
 
+## 0.6.1
+
+### Patch Changes
+
+- 1ddefec: Fix: pressing Enter on a transcript segment now starts playback when the episode is not yet playing
+
 ## 0.6.0
 
 ### Minor Changes
