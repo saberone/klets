@@ -8,17 +8,10 @@ import { useApi } from '../hooks/use-api.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
-import { formatEpisodeNumber } from '../theme/format.js';
+import { formatEpisodeNumber, formatMs } from '../theme/format.js';
 import type { SearchData, SearchSuggestion, SingleResponse } from '../api/types.js';
 
 type ResultTab = 'episodes' | 'transcripts';
-
-function formatMs(ms: number): string {
-	const totalSeconds = Math.floor(ms / 1000);
-	const m = Math.floor(totalSeconds / 60);
-	const s = totalSeconds % 60;
-	return `${m}:${s.toString().padStart(2, '0')}`;
-}
 
 export function SearchScreen() {
 	const [query, setQuery] = useState('');

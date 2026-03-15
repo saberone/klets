@@ -9,14 +9,8 @@ import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
 import { EmptyState } from '../components/empty-state.js';
 import { Pagination } from '../components/pagination.js';
+import { formatMs } from '../theme/format.js';
 import type { Moment, PaginatedResponse } from '../api/types.js';
-
-function formatMs(ms: number): string {
-	const totalSeconds = Math.floor(ms / 1000);
-	const m = Math.floor(totalSeconds / 60);
-	const s = totalSeconds % 60;
-	return `${m}:${s.toString().padStart(2, '0')}`;
-}
 
 export function MomentsScreen() {
 	const { current, navigate } = useNavigation();
