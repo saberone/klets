@@ -26,6 +26,7 @@ export function EpisodeDetailScreen() {
 	const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
 	const [selectedPersonIndex, setSelectedPersonIndex] = useState(0);
 	const [selectedTagIndex, setSelectedTagIndex] = useState(0);
+	const [selectedPlatformIndex, setSelectedPlatformIndex] = useState(0);
 	const [resumeMessage, setResumeMessage] = useState<string | null>(null);
 	const player = usePlayer();
 	const getHistoryEntry = useStore((s) => s.getHistoryEntry);
@@ -51,6 +52,8 @@ export function EpisodeDetailScreen() {
 		if (episode.persons.length > 0)
 			s.push({ label: 'Deelnemers', key: 'persons' });
 		if (episode.links.length > 0) s.push({ label: 'Links', key: 'links' });
+		if (episode.platformLinks?.length > 0)
+			s.push({ label: 'Platforms', key: 'platforms' });
 		return s;
 	}, [episode]);
 
@@ -112,16 +115,34 @@ export function EpisodeDetailScreen() {
 			}
 		}
 
+		// Platforms tab: j/k to navigate, o to open
+		if (currentKey === 'platforms' && episode.platformLinks?.length > 0) {
+			if (input === 'j' || key.downArrow) {
+				setSelectedPlatformIndex((i) =>
+					Math.min(i + 1, episode.platformLinks.length - 1),
+				);
+				return;
+			} else if (input === 'k' || key.upArrow) {
+				setSelectedPlatformIndex((i) => Math.max(i - 1, 0));
+				return;
+			} else if (input === 'o' && episode.platformLinks[selectedPlatformIndex]) {
+				openUrl(episode.platformLinks[selectedPlatformIndex]!.url);
+				return;
+			}
+		}
+
 		if (input === 'l' || key.rightArrow) {
 			setActiveSection((i) => Math.min(i + 1, sections.length - 1));
 			setSelectedLinkIndex(0);
 			setSelectedPersonIndex(0);
 			setSelectedTagIndex(0);
+			setSelectedPlatformIndex(0);
 		} else if (input === 'h' || key.leftArrow) {
 			setActiveSection((i) => Math.max(i - 1, 0));
 			setSelectedLinkIndex(0);
 			setSelectedPersonIndex(0);
 			setSelectedTagIndex(0);
+			setSelectedPlatformIndex(0);
 		} else if (input === 't' && episode.hasTranscript) {
 			navigate('transcript', { slug, title: episode.title });
 		} else if (input === 'a') {
@@ -274,7 +295,7 @@ export function EpisodeDetailScreen() {
 							` (${player.playbackSpeed}x)`}
 					</Text>
 				)}
-				{currentKey === 'links' && (
+				{(currentKey === 'links' || currentKey === 'platforms') && (
 					<Text color={colors.textSubtle}>
 						<Text color={colors.cyan}>o</Text> openen
 					</Text>
@@ -390,6 +411,36 @@ export function EpisodeDetailScreen() {
 								</Text>
 								<Text color={colors.textSubtle}>
 									{link.url}
+								</Text>
+							</Box>
+						);
+					})}
+				</Box>
+			)}
+
+			{currentKey === 'platforms' && episode.platformLinks && (
+				<Box flexDirection="column">
+					{episode.platformLinks.map((pl, i) => {
+						const isSelected = i === selectedPlatformIndex;
+						return (
+							<Box key={pl.platform} gap={1}>
+								<Text
+									color={
+										isSelected
+											? colors.cyan
+											: colors.textSubtle
+									}
+								>
+									{isSelected ? '▸' : '•'}
+								</Text>
+								<Text
+									color={isSelected ? colors.cyan : colors.text}
+									bold={isSelected}
+								>
+									{pl.platform}
+								</Text>
+								<Text color={colors.textSubtle}>
+									{pl.url}
 								</Text>
 							</Box>
 						);

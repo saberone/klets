@@ -39,6 +39,6 @@ describe('HomeScreen', () => {
 		await delay(50);
 		const { stack } = useStore.getState();
 		expect(stack).toHaveLength(2);
-		expect(stack[1]!.screen).toBe('topics-list');
+		expect(stack[1]!.screen).toBe('moments');
 	});
 });
