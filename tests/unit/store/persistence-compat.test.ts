@@ -178,3 +178,37 @@ describe('removeHistoryEntry', () => {
 		expect(useStore.getState().history.map((h) => h.slug)).toEqual(['b']);
 	});
 });
+
+describe('persisted text is cleaned on load', () => {
+	const ESC = '\u001b';
+
+	it('removes control characters from history strings', () => {
+		const [entry] = normalizeHistory([
+			{
+				slug: `ep-1${ESC}`,
+				title: `Titel${ESC}]52;c;aGFsbG8=\u0007`,
+				position: 5,
+				duration: 10,
+				lastPlayed: '2025-01-01T00:00:00.000Z\u009b',
+				completed: false,
+			},
+		]);
+		expect(entry).toMatchObject({
+			slug: 'ep-1',
+			title: 'Titel]52;c;aGFsbG8=',
+			lastPlayed: '2025-01-01T00:00:00.000Z',
+		});
+	});
+
+	it('removes control characters from favorites strings', () => {
+		const [entry] = normalizeFavorites([
+			{ slug: 'ep-2\u0007', title: `Fav${ESC}[2J`, addedAt: `x${ESC}` },
+		]);
+		expect(entry).toMatchObject({ slug: 'ep-2', title: 'Fav[2J', addedAt: 'x' });
+	});
+
+	it('drops entries whose slug is empty after cleaning', () => {
+		expect(normalizeHistory([{ slug: ESC }])).toEqual([]);
+		expect(normalizeFavorites([{ slug: '\u0007' }])).toEqual([]);
+	});
+});

@@ -77,6 +77,19 @@ describe('startEpisodePlayback', () => {
 		expect(useStore.getState().currentEpisodeSlug).toBeNull();
 	});
 
+	it('refuses an audio link that is not a web address with a Dutch message', async () => {
+		for (const audioUrl of ['ftp://media.example/ep.mp3', '--optie', '/lokaal/bestand.mp3']) {
+			const res = await startEpisodePlayback(makeDetail({ audioUrl }));
+			expect(res.ok).toBe(false);
+			if (!res.ok) {
+				expect(res.reason).toBe('invalid-audio');
+				expect(res.message).toMatch(/Afspelen mislukt/);
+			}
+		}
+		expect(mockPlay).not.toHaveBeenCalled();
+		expect(useStore.getState().currentEpisodeSlug).toBeNull();
+	});
+
 	it('treats null durationSeconds as 0', async () => {
 		await startEpisodePlayback(makeDetail({ durationSeconds: null }));
 		expect(useStore.getState().durationSeconds).toBe(0);

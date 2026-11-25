@@ -27,13 +27,15 @@ export async function getEpisodes(
 export async function getEpisode(
 	slug: string,
 ): Promise<SingleResponse<EpisodeDetail>> {
-	return api.get(`episodes/${slug}`).json<SingleResponse<EpisodeDetail>>();
+	return api
+		.get(`episodes/${encodeURIComponent(slug)}`)
+		.json<SingleResponse<EpisodeDetail>>();
 }
 
 export async function getTranscript(
 	slug: string,
 ): Promise<SingleResponse<TranscriptData>> {
 	return api
-		.get(`episodes/${slug}/transcript`)
+		.get(`episodes/${encodeURIComponent(slug)}/transcript`)
 		.json<SingleResponse<TranscriptData>>();
 }

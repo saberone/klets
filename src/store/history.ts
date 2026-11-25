@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { loadJson, saveJson } from '../utils/persistence.js';
+import { cleanText } from '../utils/clean-text.js';
 
 export const HISTORY_FILE = 'history.json';
 
@@ -64,13 +65,16 @@ export function normalizeHistory(data: unknown): HistoryEntry[] {
 	for (const raw of data) {
 		if (!raw || typeof raw !== 'object') continue;
 		const r = raw as Record<string, unknown>;
-		if (typeof r['slug'] !== 'string' || r['slug'] === '') continue;
+		if (typeof r['slug'] !== 'string') continue;
+		const slug = cleanText(r['slug']);
+		if (slug === '') continue;
 		result.push({
-			slug: r['slug'],
-			title: typeof r['title'] === 'string' ? r['title'] : r['slug'],
+			slug,
+			title: typeof r['title'] === 'string' ? cleanText(r['title']) : slug,
 			position: toNumber(r['position']),
 			duration: toNumber(r['duration']),
-			lastPlayed: typeof r['lastPlayed'] === 'string' ? r['lastPlayed'] : '',
+			lastPlayed:
+				typeof r['lastPlayed'] === 'string' ? cleanText(r['lastPlayed']) : '',
 			completed: r['completed'] === true,
 		});
 	}

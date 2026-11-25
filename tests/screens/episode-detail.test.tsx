@@ -14,10 +14,14 @@ vi.mock('../../src/utils/persistence.js', () => ({
 	loadJson: vi.fn().mockResolvedValue(null),
 	saveJson: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('node:child_process', () => ({
+	spawn: vi.fn(() => ({ on: vi.fn(), unref: vi.fn() })),
+}));
 vi.mock('../../src/utils/clipboard.js', () => ({
 	copyToClipboard: vi.fn().mockResolvedValue('copied'),
 }));
 
+import { spawn } from 'node:child_process';
 import { getEpisode } from '../../src/api/episodes.js';
 import { copyToClipboard } from '../../src/utils/clipboard.js';
 import { play } from '../../src/player/index.js';
@@ -174,5 +178,32 @@ describe('EpisodeDetailScreen', () => {
 		const { lastFrame } = render(<EpisodeDetailScreen />);
 		await waitForFrame(lastFrame, 'geen geschikte audiospeler');
 		expect(useStore.getState().stack[1]!.params).toEqual({ slug: 'ep-1' });
+	});
+
+	it('o opens web links only and says so in Dutch for other links', async () => {
+		vi.mocked(spawn).mockClear();
+		mockGetEpisode.mockResolvedValue({
+			data: makeDetail({
+				links: [
+					{ title: 'Bestand', url: 'ftp://example.com/x', personName: null },
+					{ title: 'Website', url: 'https://example.com/site', personName: null },
+				],
+			}),
+		});
+		const { lastFrame, stdin } = open();
+		await waitForFrame(lastFrame, 'Links');
+		await waitForInputReady(stdin);
+		stdin.write('l');
+		await waitForFrame(lastFrame, 'Bestand');
+		await delay(20);
+		stdin.write('o');
+		await waitForFrame(lastFrame, 'kan niet worden geopend');
+		expect(spawn).not.toHaveBeenCalled();
+		stdin.write('j');
+		await delay(20);
+		stdin.write('o');
+		await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(1));
+		const args = vi.mocked(spawn).mock.calls[0]![1] as string[];
+		expect(args[args.length - 1]).toBe('https://example.com/site');
 	});
 });

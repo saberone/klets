@@ -3,9 +3,11 @@ import type { EpisodeDetail } from '../api/types.js';
 import { useStore } from '../store/index.js';
 import { getResumePosition } from '../store/history.js';
 import { play } from './index.js';
+import { toWebUrl } from '../utils/web-url.js';
 
 export type StartEpisodeFailure =
 	| 'no-audio'
+	| 'invalid-audio'
 	| 'not-found'
 	| 'error'
 	| 'no-player';
@@ -24,6 +26,9 @@ export interface StartEpisodeOptions {
 
 export const NO_AUDIO_MESSAGE =
 	'Deze aflevering heeft (nog) geen audio en kan niet worden afgespeeld.';
+
+export const INVALID_AUDIO_MESSAGE =
+	'Afspelen mislukt: de audiolink van deze aflevering is geen webadres.';
 
 function describeError(err: unknown): {
 	reason: StartEpisodeFailure;
@@ -71,6 +76,14 @@ export async function startEpisodePlayback(
 	if (!episode.audioUrl) {
 		return { ok: false, reason: 'no-audio', message: NO_AUDIO_MESSAGE };
 	}
+	const audioUrl = toWebUrl(episode.audioUrl);
+	if (!audioUrl) {
+		return {
+			ok: false,
+			reason: 'invalid-audio',
+			message: INVALID_AUDIO_MESSAGE,
+		};
+	}
 
 	const store = useStore.getState();
 	const requested = options.startAt ?? 0;
@@ -87,7 +100,7 @@ export async function startEpisodePlayback(
 		})),
 	);
 
-	const started = await play(episode.audioUrl, startAt);
+	const started = await play(audioUrl, startAt);
 	if (!started) {
 		useStore.getState().stop();
 		return {

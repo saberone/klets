@@ -23,7 +23,7 @@ interface PersonDetailRaw {
 export async function getPerson(
 	id: number,
 ): Promise<SingleResponse<PersonDetail>> {
-	const raw = await api.get(`persons/${id}`).json<PersonDetailRaw>();
+	const raw = await api.get(`persons/${encodeURIComponent(String(id))}`).json<PersonDetailRaw>();
 	return {
 		data: {
 			...raw.data.person,

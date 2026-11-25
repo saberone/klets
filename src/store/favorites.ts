@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import { loadJson, saveJson } from '../utils/persistence.js';
 import type { EpisodeType } from '../api/types.js';
+import { cleanText } from '../utils/clean-text.js';
 
 const FAVORITES_FILE = 'favorites.json';
 
@@ -28,17 +29,19 @@ export function normalizeFavorites(data: unknown): FavoriteEntry[] {
 	for (const raw of data) {
 		if (!raw || typeof raw !== 'object') continue;
 		const r = raw as Record<string, unknown>;
-		if (typeof r['slug'] !== 'string' || r['slug'] === '') continue;
+		if (typeof r['slug'] !== 'string') continue;
+		const slug = cleanText(r['slug']);
+		if (slug === '') continue;
 		const type = r['episodeType'];
 		result.push({
-			slug: r['slug'],
-			title: typeof r['title'] === 'string' ? r['title'] : r['slug'],
+			slug,
+			title: typeof r['title'] === 'string' ? cleanText(r['title']) : slug,
 			seasonNumber: toNullableNumber(r['seasonNumber']),
 			episodeNumber: toNullableNumber(r['episodeNumber']),
 			...(type === 'full' || type === 'trailer' || type === 'bonus'
 				? { episodeType: type }
 				: {}),
-			addedAt: typeof r['addedAt'] === 'string' ? r['addedAt'] : '',
+			addedAt: typeof r['addedAt'] === 'string' ? cleanText(r['addedAt']) : '',
 		});
 	}
 	return result;
