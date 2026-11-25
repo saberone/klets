@@ -6,7 +6,9 @@ export default defineConfig({
 	target: 'node18',
 	outDir: 'dist',
 	clean: true,
-	splitting: false,
+	// Code splitting keeps ink/react/the player out of the print commands'
+	// startup path: dynamic imports become separate chunks.
+	splitting: true,
 	sourcemap: true,
 	dts: false,
 	external: [

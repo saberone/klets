@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
@@ -8,7 +8,9 @@ import { useApi } from '../hooks/use-api.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
-import { formatEpisodeNumber, formatMs } from '../theme/format.js';
+import { formatMs } from '../theme/format.js';
+import { EpisodeLabel } from '../components/episode-label.js';
+import { useInputCapture } from '../hooks/use-input-capture.js';
 import type { SearchData, SearchSuggestion, SingleResponse } from '../api/types.js';
 
 type ResultTab = 'episodes' | 'transcripts';
@@ -22,7 +24,9 @@ export function SearchScreen() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [results, setResults] = useState<SearchData | null>(null);
-	const { navigate } = useNavigation();
+	const { navigate, goBack } = useNavigation();
+	// While typing the query, global keys (q, ?, space, …) must not fire
+	useInputCapture(submitted ? 'none' : 'all');
 
 	const suggestionsFetcher = useCallback(() => getSearchSuggestions(10), []);
 	const { data: suggestionsData } = useApi<SingleResponse<SearchSuggestion[]>>(
@@ -61,7 +65,19 @@ export function SearchScreen() {
 
 	const showSuggestions = !submitted && query.length === 0 && suggestions.length > 0;
 
+	// Ink re-subscribes handlers in an effect; read the latest typed state
+	// through a ref so a quick "type + enter" never sees a stale query.
+	const latest = useRef({ query, submitted });
+	latest.current = { query, submitted };
+
 	useInput((input, key) => {
+		const { query, submitted } = latest.current;
+		// Global keys are captured while typing, so handle esc (back) here
+		if (key.escape && !submitted) {
+			goBack();
+			return;
+		}
+
 		// Suggestion navigation when no query typed
 		if (showSuggestions && !submitted) {
 			if (input === 'j' || key.downArrow) {
@@ -126,7 +142,15 @@ export function SearchScreen() {
 
 		if (key.backspace || key.delete) {
 			setQuery((q) => q.slice(0, -1));
-		} else if (input && !key.ctrl && !key.meta) {
+		} else if (
+			input &&
+			!key.ctrl &&
+			!key.meta &&
+			!key.return &&
+			!key.tab &&
+			!key.escape
+		) {
+			// Never append control keys (Ink passes '\r' as input for enter)
 			setQuery((q) => q + input);
 		}
 	});
@@ -245,12 +269,10 @@ export function SearchScreen() {
 												>
 													{isSelected ? '▸' : ' '}
 												</Text>
-												<Text color={colors.purple}>
-													{formatEpisodeNumber(
-														ep.seasonNumber,
-														ep.episodeNumber,
-													)}
-												</Text>
+												<EpisodeLabel
+													seasonNumber={ep.seasonNumber}
+													episodeNumber={ep.episodeNumber}
+												/>
 												<Text
 													color={
 														isSelected
@@ -302,7 +324,7 @@ export function SearchScreen() {
 															: ' '}
 													</Text>
 													<Text
-														color={colors.purple}
+														color={colors.coral}
 													>
 														{formatMs(
 															t.startTimeMs,

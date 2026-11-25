@@ -1,14 +1,47 @@
 import type { StateCreator } from 'zustand';
 import { loadJson, saveJson } from '../utils/persistence.js';
+import type { EpisodeType } from '../api/types.js';
 
 const FAVORITES_FILE = 'favorites.json';
 
 export interface FavoriteEntry {
 	slug: string;
 	title: string;
-	seasonNumber: number;
-	episodeNumber: number;
+	seasonNumber: number | null;
+	episodeNumber: number | null;
+	/** Missing in favorites saved by klets < 0.7 */
+	episodeType?: EpisodeType;
 	addedAt: string;
+}
+
+function toNullableNumber(value: unknown): number | null {
+	return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Normalizes persisted favorites (including files written by older versions).
+ * Invalid entries are dropped, missing fields get safe defaults.
+ */
+export function normalizeFavorites(data: unknown): FavoriteEntry[] {
+	if (!Array.isArray(data)) return [];
+	const result: FavoriteEntry[] = [];
+	for (const raw of data) {
+		if (!raw || typeof raw !== 'object') continue;
+		const r = raw as Record<string, unknown>;
+		if (typeof r['slug'] !== 'string' || r['slug'] === '') continue;
+		const type = r['episodeType'];
+		result.push({
+			slug: r['slug'],
+			title: typeof r['title'] === 'string' ? r['title'] : r['slug'],
+			seasonNumber: toNullableNumber(r['seasonNumber']),
+			episodeNumber: toNullableNumber(r['episodeNumber']),
+			...(type === 'full' || type === 'trailer' || type === 'bonus'
+				? { episodeType: type }
+				: {}),
+			addedAt: typeof r['addedAt'] === 'string' ? r['addedAt'] : '',
+		});
+	}
+	return result;
 }
 
 export interface FavoritesSlice {
@@ -18,8 +51,9 @@ export interface FavoritesSlice {
 	toggleFavorite: (
 		slug: string,
 		title: string,
-		seasonNumber: number,
-		episodeNumber: number,
+		seasonNumber: number | null,
+		episodeNumber: number | null,
+		episodeType?: EpisodeType,
 	) => void;
 	isFavorite: (slug: string) => boolean;
 }
@@ -32,15 +66,15 @@ export const createFavoritesSlice: StateCreator<FavoritesSlice> = (
 	favoritesLoaded: false,
 
 	loadFavorites: async () => {
-		const data = await loadJson<FavoriteEntry[]>(FAVORITES_FILE);
+		const data = await loadJson<unknown>(FAVORITES_FILE);
 		if (data) {
-			set({ favorites: data, favoritesLoaded: true });
+			set({ favorites: normalizeFavorites(data), favoritesLoaded: true });
 		} else {
 			set({ favoritesLoaded: true });
 		}
 	},
 
-	toggleFavorite: (slug, title, seasonNumber, episodeNumber) => {
+	toggleFavorite: (slug, title, seasonNumber, episodeNumber, episodeType) => {
 		set((state) => {
 			const exists = state.favorites.some((f) => f.slug === slug);
 			const newFavorites = exists
@@ -51,6 +85,7 @@ export const createFavoritesSlice: StateCreator<FavoritesSlice> = (
 							title,
 							seasonNumber,
 							episodeNumber,
+							...(episodeType ? { episodeType } : {}),
 							addedAt: new Date().toISOString(),
 						},
 						...state.favorites,

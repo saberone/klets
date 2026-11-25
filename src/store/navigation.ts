@@ -12,7 +12,16 @@ export type ScreenName =
 	| 'search'
 	| 'help'
 	| 'favorites'
+	| 'history'
 	| 'moments';
+
+/**
+ * Which global keybindings a focused text input is currently taking over:
+ * - 'none': all global keys work
+ * - 'escape': only esc is handled by the screen (e.g. to clear an active search)
+ * - 'all': no global key fires (typing "q" types a q)
+ */
+export type InputCapture = 'none' | 'escape' | 'all';
 
 export interface ScreenEntry {
 	screen: ScreenName;
@@ -25,6 +34,10 @@ export interface NavigationSlice {
 	navigate: (screen: ScreenName, params?: Record<string, unknown>) => void;
 	goBack: () => void;
 	resetTo: (screen: ScreenName, params?: Record<string, unknown>) => void;
+	/** Merges params into the top screen entry (undefined removes a key). */
+	setCurrentParams: (params: Record<string, unknown>) => void;
+	inputCapture: InputCapture;
+	setInputCapture: (capture: InputCapture) => void;
 }
 
 export const createNavigationSlice: StateCreator<NavigationSlice> = (
@@ -32,6 +45,7 @@ export const createNavigationSlice: StateCreator<NavigationSlice> = (
 	get,
 ) => ({
 	stack: [{ screen: 'home' }],
+	inputCapture: 'none',
 
 	currentScreen: () => {
 		const { stack } = get();
@@ -52,4 +66,18 @@ export const createNavigationSlice: StateCreator<NavigationSlice> = (
 		set(() => ({
 			stack: [{ screen, params }],
 		})),
+
+	setCurrentParams: (params) =>
+		set((state) => {
+			const top = state.stack[state.stack.length - 1]!;
+			const merged: Record<string, unknown> = { ...top.params, ...params };
+			for (const k of Object.keys(merged)) {
+				if (merged[k] === undefined) delete merged[k];
+			}
+			return {
+				stack: [...state.stack.slice(0, -1), { ...top, params: merged }],
+			};
+		}),
+
+	setInputCapture: (capture) => set({ inputCapture: capture }),
 });

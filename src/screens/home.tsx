@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import Gradient from 'ink-gradient';
 import { colors } from '../theme/colors.js';
@@ -9,6 +9,11 @@ import { playJingle } from '../audio/jingle.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { MatrixRain } from '../components/matrix-rain.js';
 import { useTerminalSize } from '../hooks/use-terminal-size.js';
+import { useStore } from '../store/index.js';
+import { isUnfinished, sortHistory } from '../store/history.js';
+import { formatDuration } from '../theme/format.js';
+import { startEpisodePlayback } from '../player/start-episode.js';
+import { useFlashMessage } from '../hooks/use-flash-message.js';
 
 const BANNER_CODE = `\
  ██████╗ ██████╗ ██████╗ ███████╗
@@ -26,6 +31,8 @@ const BANNER_KLETS = `\
 ██║  ██╗███████╗███████╗   ██║   ███████║
 ╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚══════╝`;
 
+const RESUME_KEY = 'resume';
+
 interface MenuItem {
 	label: string;
 	screen:
@@ -34,6 +41,7 @@ interface MenuItem {
 		| 'persons-list'
 		| 'search'
 		| 'favorites'
+		| 'history'
 		| 'moments';
 	description: string;
 }
@@ -65,6 +73,11 @@ const menuItems: MenuItem[] = [
 		description: 'Opgeslagen afleveringen',
 	},
 	{
+		label: 'Geschiedenis',
+		screen: 'history',
+		description: 'Eerder beluisterde afleveringen',
+	},
+	{
 		label: 'Zoeken',
 		screen: 'search',
 		description: 'Zoek in afleveringen',
@@ -72,8 +85,31 @@ const menuItems: MenuItem[] = [
 ];
 
 export function HomeScreen() {
-	const [selectedIndex, setSelectedIndex] = useState(0);
+	// Selection is kept by key, so it stays on the same item when the
+	// "Verder luisteren" row appears or disappears. null = first item.
+	const [selectedKey, setSelectedKey] = useState<string | null>(null);
 	const { navigate } = useNavigation();
+	const history = useStore((s) => s.history);
+	const playingSlug = useStore((s) => s.currentEpisodeSlug);
+	const [flash, showFlash] = useFlashMessage();
+
+	// "Verder luisteren": the most recent entry, when it is unfinished
+	const resumeEntry = useMemo(() => {
+		const latest = sortHistory(history)[0];
+		// Not for the episode that is playing right now: history is updated
+		// every 10 s during playback, so it would offer what you hear.
+		return latest && isUnfinished(latest) && latest.slug !== playingSlug
+			? latest
+			: null;
+	}, [history, playingSlug]);
+	const offset = resumeEntry ? 1 : 0;
+	const itemKeys = useMemo(
+		() => [...(resumeEntry ? [RESUME_KEY] : []), ...menuItems.map((m) => m.screen)],
+		[resumeEntry],
+	);
+	const keyIndex = selectedKey === null ? -1 : itemKeys.indexOf(selectedKey);
+	// A vanished resume row falls back to the first menu item
+	const selectedIndex = keyIndex === -1 ? 0 : keyIndex;
 	const { activated } = useKonamiCode();
 	const { rows: terminalRows, columns: terminalColumns } = useTerminalSize();
 	const waveColors = useColorWave({ speed: activated ? 50 : 200 });
@@ -90,14 +126,41 @@ export function HomeScreen() {
 		setJinglePlayed(false);
 	}
 
+	// Ink re-subscribes handlers in an effect: read the latest selection through
+	// a ref so quick key presses never act on a stale index.
+	const latest = useRef({ selectedIndex, itemKeys, resumeEntry });
+	latest.current = { selectedIndex, itemKeys, resumeEntry };
+
 	useInput((input, key) => {
+		const { selectedIndex, itemKeys, resumeEntry } = latest.current;
+		const itemCount = itemKeys.length;
+		const offset = resumeEntry ? 1 : 0;
+		const select = (index: number) =>
+			setSelectedKey(itemKeys[Math.max(0, Math.min(index, itemCount - 1))]!);
 		if (input === 'j' || key.downArrow) {
-			setSelectedIndex((i) => Math.min(i + 1, menuItems.length - 1));
+			select(selectedIndex + 1);
 		} else if (input === 'k' || key.upArrow) {
-			setSelectedIndex((i) => Math.max(i - 1, 0));
+			select(selectedIndex - 1);
 		} else if (key.return) {
-			const item = menuItems[selectedIndex]!;
-			navigate(item.screen);
+			const index = selectedIndex;
+			if (resumeEntry && index === 0) {
+				startEpisodePlayback(resumeEntry.slug, {
+					startAt: resumeEntry.position,
+				}).then((res) => {
+					if (res.ok) {
+						showFlash(
+							`Hervat bij ${formatDuration(res.startAt)}`,
+							'success',
+							3000,
+						);
+					} else {
+						showFlash(res.message, 'error', 3000);
+					}
+				});
+				return;
+			}
+			const item = menuItems[index - offset];
+			if (item) navigate(item.screen);
 		}
 	});
 
@@ -130,8 +193,34 @@ export function HomeScreen() {
 				paddingX={2}
 				alignItems="center"
 			>
-				{menuItems.map((item, i) => {
-					const isSelected = i === selectedIndex;
+				{resumeEntry && (
+					<Box flexDirection="column" alignItems="center" paddingBottom={1}>
+						<Box gap={1}>
+							<Text color={selectedIndex === 0 ? colors.cyan : colors.textSubtle}>
+								{selectedIndex === 0 ? '▸' : ' '}
+							</Text>
+							<Text color={selectedIndex === 0 ? colors.cyan : colors.text} bold>
+								Verder luisteren
+							</Text>
+							<Text color={colors.textMuted}>— {resumeEntry.title}</Text>
+						</Box>
+						<Text color={colors.textSubtle}>
+							{formatDuration(resumeEntry.position)}
+							{resumeEntry.duration > 0
+								? ` / ${formatDuration(resumeEntry.duration)}`
+								: ''}
+						</Text>
+					</Box>
+				)}
+				{flash && (
+					<Box paddingBottom={1}>
+						<Text color={flash.tone === 'error' ? colors.error : colors.success} bold>
+							{flash.text}
+						</Text>
+					</Box>
+				)}
+				{menuItems.map((item, mi) => {
+					const isSelected = mi + offset === selectedIndex;
 					return (
 						<Box key={item.screen} gap={1}>
 							<Text color={isSelected ? colors.cyan : colors.textSubtle}>

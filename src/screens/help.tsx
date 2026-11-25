@@ -44,6 +44,7 @@ const sections: Section[] = [
 			{ keys: 'o', description: 'Link openen in browser' },
 			{ keys: 'b', description: 'Favoriet aan/uit' },
 			{ keys: 'a', description: 'Toevoegen aan wachtrij' },
+			{ keys: 'y', description: 'Deel-link kopiëren (op Hoofdstukken: hoofdstuk)' },
 			{ keys: '[ ]', description: 'Vorig / volgend hoofdstuk' },
 			{ keys: '- +', description: 'Afspeelsnelheid' },
 		],
@@ -56,10 +57,36 @@ const sections: Section[] = [
 		],
 	},
 	{
+		title: 'Home',
+		bindings: [
+			{ keys: 'enter', description: 'Verder luisteren (bovenste rij)' },
+		],
+	},
+	{
+		title: 'Geschiedenis',
+		bindings: [
+			{ keys: 'enter', description: 'Aflevering openen' },
+			{ keys: 'p', description: 'Verder luisteren' },
+			{ keys: 'x', description: 'Verwijderen uit geschiedenis' },
+		],
+	},
+	{
 		title: 'Transcript',
 		bindings: [
 			{ keys: 'enter', description: 'Spring naar segment' },
 			{ keys: 'f', description: 'Volg afspelen' },
+			{ keys: 'y', description: 'Link naar segment kopiëren' },
+			{ keys: '/', description: 'Zoeken in transcript' },
+			{ keys: 'n / N', description: 'Volgende / vorige treffer' },
+			{ keys: 'esc', description: 'Zoekopdracht wissen' },
+		],
+	},
+	{
+		title: "Commando's (terminal)",
+		bindings: [
+			{ keys: 'klets play <slug|latest>', description: 'Start en speel af (hervat)' },
+			{ keys: 'klets search <zoekterm>', description: 'Zoek; --json voor JSON' },
+			{ keys: 'klets transcript <slug>', description: 'Transcript; --vtt of --json' },
 		],
 	},
 	{
@@ -123,7 +150,7 @@ export function HelpScreen() {
 					if (line.type === 'header') {
 						return (
 							<Box key={i} paddingTop={i > 0 ? 1 : 0}>
-								<Text color={colors.purple} bold>
+								<Text color={colors.coral} bold>
 									{line.text}
 								</Text>
 							</Box>

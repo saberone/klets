@@ -87,7 +87,7 @@ export function MomentsScreen() {
 					Hoogtepunten
 				</Text>
 				{tagFilter && (
-					<Text color={colors.purple}>[{tagFilter}]</Text>
+					<Text color={colors.coral}>[{tagFilter}]</Text>
 				)}
 			</Box>
 
@@ -128,7 +128,7 @@ export function MomentsScreen() {
 									>
 										{isSelected ? '▸' : ' '}
 									</Text>
-									<Text color={colors.purple}>
+									<Text color={colors.coral}>
 										{formatMs(m.startTimeMs)}
 									</Text>
 									<Text

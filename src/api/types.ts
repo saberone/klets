@@ -16,6 +16,12 @@ export interface SingleResponse<T> {
 	data: T;
 }
 
+/** Unpaginated list endpoints (persons, topics) return no meta. */
+export interface ListResponse<T> {
+	data: T[];
+	meta?: PaginationMeta;
+}
+
 export interface ApiError {
 	error: string;
 	code: string;
@@ -56,16 +62,19 @@ export interface PersonDetail extends PersonListItem {
 }
 
 // ── Episode (list) ──────────────────────────────────────────
+export type EpisodeType = 'full' | 'trailer' | 'bonus';
+
 export interface EpisodeListItem {
 	slug: string;
 	title: string;
 	intro: string | null;
-	seasonNumber: number;
-	episodeNumber: number;
-	durationSeconds: number;
-	publishedAt: string;
+	seasonNumber: number | null;
+	episodeNumber: number | null;
+	episodeType: EpisodeType;
+	durationSeconds: number | null;
+	publishedAt: string | null;
 	artworkUrl: string | null;
-	audioUrl: string;
+	audioUrl: string | null;
 	tags: Tag[];
 	persons: PersonSummary[];
 	hasTranscript: boolean;
@@ -86,8 +95,8 @@ export interface LearningPoint {
 
 export interface EpisodeLink {
 	title: string;
-	url: string;
-	personId: number | null;
+	url: string | null;
+	personName: string | null;
 }
 
 export interface EpisodePersonDetail {
@@ -103,13 +112,14 @@ export interface EpisodeDetail {
 	title: string;
 	intro: string | null;
 	showNotes: string | null;
-	seasonNumber: number;
-	episodeNumber: number;
-	durationSeconds: number;
+	seasonNumber: number | null;
+	episodeNumber: number | null;
+	episodeType: EpisodeType;
+	durationSeconds: number | null;
 	explicit: boolean;
-	publishedAt: string;
+	publishedAt: string | null;
 	artworkUrl: string | null;
-	audioUrl: string;
+	audioUrl: string | null;
 	tags: Tag[];
 	persons: EpisodePersonDetail[];
 	chapters: Chapter[];
@@ -126,7 +136,6 @@ export interface TranscriptSegment {
 	endTimeMs: number;
 	text: string;
 	speaker: string | null;
-	confidence: number | null;
 }
 
 export interface TranscriptData {
@@ -151,6 +160,15 @@ export interface TopicDetail {
 	episodes: EpisodeListItem[];
 }
 
+/** Raw shape of GET /topics/:slug — flattened into TopicDetail by getTopic(). */
+export interface TopicDetailRaw {
+	data: {
+		topic: Omit<TopicDetail, 'episodes'>;
+		episodes: EpisodeListItem[];
+	};
+	meta?: PaginationMeta;
+}
+
 // ── Season ──────────────────────────────────────────────────
 export interface Season {
 	seasonNumber: number;
@@ -161,22 +179,25 @@ export interface SearchEpisodeResult {
 	slug: string;
 	title: string;
 	intro: string | null;
-	seasonNumber: number;
-	episodeNumber: number;
-	matchType: string;
+	seasonNumber: number | null;
+	episodeNumber: number | null;
 }
 
 export interface SearchTranscriptResult {
 	episodeSlug: string;
 	episodeTitle: string;
+	seasonNumber: number | null;
+	episodeNumber: number | null;
 	text: string;
 	speaker: string | null;
 	startTimeMs: number;
+	endTimeMs: number;
 }
 
+/** Each key is only present when the matching `type` was requested. */
 export interface SearchData {
-	episodes: SearchEpisodeResult[];
-	transcripts: SearchTranscriptResult[];
+	episodes?: SearchEpisodeResult[];
+	transcripts?: SearchTranscriptResult[];
 }
 
 // ── Featured Moments ────────────────────────────────────────

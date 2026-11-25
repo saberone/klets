@@ -42,7 +42,7 @@ export async function play(
 			return kletsAudioBackend.play(url, startSeconds);
 
 		case 'mpv':
-			return startMpv(url);
+			return startMpv(url, startSeconds);
 
 		case 'pcm-pipe':
 			return pcmPipeBackend.play(url, startSeconds);

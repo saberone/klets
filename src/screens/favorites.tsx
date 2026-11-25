@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { colors } from '../theme/colors.js';
-import { formatEpisodeNumber } from '../theme/format.js';
+import { EpisodeLabel } from '../components/episode-label.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { useStore } from '../store/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
@@ -28,6 +28,7 @@ export function FavoritesScreen() {
 				fav.title,
 				fav.seasonNumber,
 				fav.episodeNumber,
+				fav.episodeType,
 			);
 			// Adjust selection if we removed the last item
 			if (selectedIndex >= favorites.length - 1 && selectedIndex > 0) {
@@ -43,7 +44,7 @@ export function FavoritesScreen() {
 					Favorieten
 				</Text>
 				<Text color={colors.textSubtle}>
-					{favorites.length} afleveringen
+					{favorites.length === 1 ? '1 aflevering' : `${favorites.length} afleveringen`}
 				</Text>
 			</Box>
 
@@ -68,12 +69,11 @@ export function FavoritesScreen() {
 									{isSelected ? '▸' : ' '}
 								</Text>
 								<Text color={colors.warning}>★</Text>
-								<Text color={colors.purple}>
-									{formatEpisodeNumber(
-										fav.seasonNumber,
-										fav.episodeNumber,
-									)}
-								</Text>
+								<EpisodeLabel
+									seasonNumber={fav.seasonNumber}
+									episodeNumber={fav.episodeNumber}
+									episodeType={fav.episodeType}
+								/>
 								<Text
 									color={isSelected ? colors.cyan : colors.text}
 									bold={isSelected}

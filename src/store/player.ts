@@ -34,6 +34,8 @@ export interface PlayerSlice {
 	addToQueue: (item: QueueItem) => void;
 	removeFromQueue: (slug: string) => void;
 	playNext: () => QueueItem | null;
+	/** Puts an item back at the front of the queue (e.g. when starting it failed). */
+	requeueFront: (item: QueueItem) => void;
 	clearQueue: () => void;
 }
 
@@ -96,6 +98,11 @@ export const createPlayerSlice: StateCreator<PlayerSlice> = (set, get) => ({
 		set({ queue: queue.slice(1) });
 		return next;
 	},
+
+	requeueFront: (item) =>
+		set((state) => ({
+			queue: [item, ...state.queue.filter((q) => q.slug !== item.slug)],
+		})),
 
 	clearQueue: () => set({ queue: [] }),
 });

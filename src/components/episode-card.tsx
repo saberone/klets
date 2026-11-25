@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { colors } from '../theme/colors.js';
-import { formatDuration, formatDate, formatEpisodeNumber } from '../theme/format.js';
+import { formatDuration, formatDate } from '../theme/format.js';
+import { EpisodeLabel, hasEpisodeLabel } from './episode-label.js';
 import { useStore } from '../store/index.js';
 import type { EpisodeListItem } from '../api/types.js';
 
@@ -30,11 +31,14 @@ export function EpisodeCard({ episode, isSelected }: EpisodeCardProps) {
 				<Text color={isSelected ? colors.cyan : colors.textSubtle}>
 					{indicator}{' '}
 				</Text>
-				<Text color={colors.purple} dimColor={!isSelected}>
-					{formatEpisodeNumber(episode.seasonNumber, episode.episodeNumber)}
-				</Text>
+				<EpisodeLabel
+					seasonNumber={episode.seasonNumber}
+					episodeNumber={episode.episodeNumber}
+					episodeType={episode.episodeType}
+					dim={!isSelected}
+				/>
 				<Text color={titleColor} bold={isSelected}>
-					{' '}
+					{hasEpisodeLabel(episode) ? ' ' : ''}
 					{episode.title}
 				</Text>
 				{favorited && (
@@ -53,19 +57,23 @@ export function EpisodeCard({ episode, isSelected }: EpisodeCardProps) {
 				</Box>
 			)}
 			<Box paddingLeft={4} gap={2}>
-				<Text color={colors.textSubtle}>
-					{formatDate(episode.publishedAt)}
-				</Text>
-				<Text color={colors.textSubtle}>
-					{formatDuration(episode.durationSeconds)}
-				</Text>
+				{episode.publishedAt && (
+					<Text color={colors.textSubtle}>
+						{formatDate(episode.publishedAt)}
+					</Text>
+				)}
+				{episode.durationSeconds !== null && (
+					<Text color={colors.textSubtle}>
+						{formatDuration(episode.durationSeconds)}
+					</Text>
+				)}
 				{hasProgress && (
-					<Text color={colors.purple}>
+					<Text color={colors.coral}>
 						{formatDuration(historyEntry.position)} beluisterd
 					</Text>
 				)}
 				{episode.tags.length > 0 && (
-					<Text color={colors.purple}>
+					<Text color={colors.coral}>
 						{episode.tags.map((t) => t.name).join(', ')}
 					</Text>
 				)}

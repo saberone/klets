@@ -13,6 +13,16 @@ export default tseslint.config(
 		},
 	},
 	{
+		// Node scripts (plain JS, run by npm scripts)
+		files: ['scripts/**/*.js'],
+		languageOptions: {
+			globals: {
+				console: 'readonly',
+				process: 'readonly',
+			},
+		},
+	},
+	{
 		ignores: ['dist/', 'node_modules/'],
 	},
 );

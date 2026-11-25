@@ -9,7 +9,7 @@ import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
 import { EmptyState } from '../components/empty-state.js';
-import type { PaginatedResponse, Topic } from '../api/types.js';
+import type { ListResponse, Topic } from '../api/types.js';
 
 export function TopicsListScreen() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -17,7 +17,7 @@ export function TopicsListScreen() {
 
 	const fetcher = useCallback(() => getTopics(), []);
 	const { data, loading, error, refetch } = useApi<
-		PaginatedResponse<Topic>
+		ListResponse<Topic>
 	>(fetcher, 'topics', 60 * 60 * 1000);
 
 	const topics = data?.data ?? [];

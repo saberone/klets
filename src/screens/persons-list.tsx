@@ -9,7 +9,7 @@ import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
 import { ErrorDisplay } from '../components/error-display.js';
 import { EmptyState } from '../components/empty-state.js';
-import type { PaginatedResponse, PersonListItem } from '../api/types.js';
+import type { ListResponse, PersonListItem } from '../api/types.js';
 
 export function PersonsListScreen() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -17,7 +17,7 @@ export function PersonsListScreen() {
 
 	const fetcher = useCallback(() => getPersons(), []);
 	const { data, loading, error, refetch } = useApi<
-		PaginatedResponse<PersonListItem>
+		ListResponse<PersonListItem>
 	>(fetcher, 'persons', 60 * 60 * 1000);
 
 	const persons = data?.data ?? [];
