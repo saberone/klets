@@ -57,4 +57,13 @@ describe('navigation store', () => {
 		const current = useStore.getState().currentScreen();
 		expect(current.screen).toBe('topics-list');
 	});
+
+	it('setCurrentParams merges into the top entry and removes undefined keys', () => {
+		useStore.getState().navigate('episode-detail', { slug: 'a' });
+		useStore.getState().setCurrentParams({ playError: 'x' });
+		expect(useStore.getState().stack[1]!.params).toEqual({ slug: 'a', playError: 'x' });
+		useStore.getState().setCurrentParams({ playError: undefined });
+		expect(useStore.getState().stack[1]!.params).toEqual({ slug: 'a' });
+		expect(useStore.getState().stack[0]).toEqual({ screen: 'home' });
+	});
 });

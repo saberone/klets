@@ -1,6 +1,8 @@
 export const colors = {
+	/** Primary brand colour */
 	cyan: '#00f0ff',
-	purple: '#bf00ff',
+	/** Secondary brand colour (muted coral; replaces the retired purple) */
+	coral: '#f4a6b8',
 	bg: '#0a0a0f',
 	text: '#e4e4e7',
 	textMuted: '#a1a1aa',

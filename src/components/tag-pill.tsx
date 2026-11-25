@@ -8,7 +8,7 @@ interface TagPillProps {
 
 export function TagPill({ name }: TagPillProps) {
 	return (
-		<Text color={colors.purple}>
+		<Text color={colors.coral}>
 			[{name}]
 		</Text>
 	);

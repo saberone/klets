@@ -169,7 +169,7 @@ export function PersonDetailScreen() {
 									color={
 										isSelected
 											? colors.cyan
-											: colors.purple
+											: colors.coral
 									}
 									bold={isSelected}
 								>

@@ -25,7 +25,7 @@ function ProgressBar({
 
 	return (
 		<Text>
-			<Text color={colors.purple}>{'━'.repeat(filled)}</Text>
+			<Text color={colors.coral}>{'━'.repeat(filled)}</Text>
 			<Text color={colors.border}>{'━'.repeat(empty)}</Text>
 		</Text>
 	);
@@ -60,13 +60,13 @@ export function PlayerBar() {
 	return (
 		<Box
 			borderStyle="single"
-			borderColor={colors.purple}
+			borderColor={colors.coral}
 			paddingX={1}
 			flexDirection="column"
 		>
 			<Box justifyContent="space-between">
 				<Box gap={1}>
-					<Text color={colors.purple}>{icon}</Text>
+					<Text color={colors.coral}>{icon}</Text>
 					<Text color={colors.text} bold>
 						{currentEpisodeTitle}
 					</Text>
@@ -74,16 +74,18 @@ export function PlayerBar() {
 				<Box gap={2}>
 					{showPosition ? (
 						<Text color={colors.textMuted}>
-							{formatDuration(position)} /{' '}
-							{formatDuration(durationSeconds)}
+							{formatDuration(position)}
+							{durationSeconds > 0
+								? ` / ${formatDuration(durationSeconds)}`
+								: ''}
 						</Text>
-					) : (
+					) : durationSeconds > 0 ? (
 						<Text color={colors.textMuted}>
 							{formatDuration(durationSeconds)}
 						</Text>
-					)}
+					) : null}
 					{playbackSpeed !== 1 && (
-						<Text color={colors.purple} bold>
+						<Text color={colors.coral} bold>
 							{playbackSpeed}x
 						</Text>
 					)}

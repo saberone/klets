@@ -19,6 +19,7 @@ import { TranscriptScreen } from './screens/transcript.js';
 import { HelpScreen } from './screens/help.js';
 import { FavoritesScreen } from './screens/favorites.js';
 import { MomentsScreen } from './screens/moments.js';
+import { HistoryScreen } from './screens/history.js';
 import { useHistoryTracker } from './hooks/use-history-tracker.js';
 
 function ScreenRouter() {
@@ -50,6 +51,8 @@ function ScreenRouter() {
 			return <FavoritesScreen />;
 		case 'moments':
 			return <MomentsScreen />;
+		case 'history':
+			return <HistoryScreen />;
 		default:
 			return <HomeScreen />;
 	}

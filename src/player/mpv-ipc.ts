@@ -13,7 +13,7 @@ let positionSeconds = 0;
 let durationSeconds = 0;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-export function startMpv(url: string): boolean {
+export function startMpv(url: string, startSeconds = 0): boolean {
 	stopMpv();
 
 	try {
@@ -28,6 +28,7 @@ export function startMpv(url: string): boolean {
 			'--no-video',
 			'--really-quiet',
 			`--input-ipc-server=${SOCKET_PATH}`,
+			...(startSeconds > 0 ? [`--start=${Math.floor(startSeconds)}`] : []),
 			url,
 		],
 		{ stdio: 'ignore', detached: false },

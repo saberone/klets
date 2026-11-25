@@ -1,16 +1,14 @@
 import { api } from './client.js';
 import type {
 	EpisodeListItem,
-	PaginatedResponse,
+	ListResponse,
 	PersonDetail,
 	PersonListItem,
 	SingleResponse,
 } from './types.js';
 
-export async function getPersons(): Promise<
-	PaginatedResponse<PersonListItem>
-> {
-	return api.get('persons').json<PaginatedResponse<PersonListItem>>();
+export async function getPersons(): Promise<ListResponse<PersonListItem>> {
+	return api.get('persons').json<ListResponse<PersonListItem>>();
 }
 
 // API returns { data: { person: {...}, episodes: [...] } }

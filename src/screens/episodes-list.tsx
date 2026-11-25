@@ -137,7 +137,7 @@ export function EpisodesListScreen() {
 				{tag && (
 					<Text color={colors.textSubtle}>
 						tag:{' '}
-						<Text color={colors.purple}>{tagName ?? tag}</Text>
+						<Text color={colors.coral}>{tagName ?? tag}</Text>
 						{' '}
 						<Text color={colors.cyan}>x</Text> wissen
 					</Text>

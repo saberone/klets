@@ -1,12 +1,18 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Box, Text, useInput } from 'ink';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Box, Text } from 'ink';
+import { useStableInput } from '../hooks/use-stable-input.js';
 import { colors } from '../theme/colors.js';
-import { formatDuration, formatDate, formatEpisodeNumber } from '../theme/format.js';
+import { formatDuration, formatDate } from '../theme/format.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { usePlayer } from '../hooks/use-player.js';
 import { useApi } from '../hooks/use-api.js';
 import { getEpisode } from '../api/episodes.js';
-import { play, stop as stopPlayer, isActive } from '../player/index.js';
+import { stop as stopPlayer, isActive } from '../player/index.js';
+import { startEpisodePlayback, NO_AUDIO_MESSAGE } from '../player/start-episode.js';
+import { useFlashMessage } from '../hooks/use-flash-message.js';
+import { EpisodeLabel } from '../components/episode-label.js';
+import { useShareLink } from '../hooks/use-share-link.js';
+import { buildEpisodeUrl } from '../utils/share-url.js';
 import { openUrl } from '../utils/open-url.js';
 import { useStore } from '../store/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
@@ -27,9 +33,19 @@ export function EpisodeDetailScreen() {
 	const [selectedPersonIndex, setSelectedPersonIndex] = useState(0);
 	const [selectedTagIndex, setSelectedTagIndex] = useState(0);
 	const [selectedPlatformIndex, setSelectedPlatformIndex] = useState(0);
-	const [resumeMessage, setResumeMessage] = useState<string | null>(null);
+	const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
+	const [flash, showFlash] = useFlashMessage();
+	const share = useShareLink(showFlash);
+	const setCurrentParams = useStore((s) => s.setCurrentParams);
+	const playError = current.params?.['playError'] as string | undefined;
+
+	// A playback failure reported from outside the screen (`klets play`)
+	useEffect(() => {
+		if (!playError) return;
+		showFlash(playError, 'error', 6000);
+		setCurrentParams({ playError: undefined });
+	}, [playError, showFlash, setCurrentParams]);
 	const player = usePlayer();
-	const getHistoryEntry = useStore((s) => s.getHistoryEntry);
 	const toggleFavorite = useStore((s) => s.toggleFavorite);
 	const isFavorite = useStore((s) => s.isFavorite);
 	const favorited = isFavorite(slug);
@@ -59,8 +75,31 @@ export function EpisodeDetailScreen() {
 
 	const currentKey = sections[activeSection]?.key;
 
-	useInput((input, key) => {
+	useStableInput((input, key) => {
 		if (!episode) return;
+
+		// y: share link — selected chapter on the chapters tab, else the episode
+		if (input === 'y') {
+			const chapter =
+				currentKey === 'chapters'
+					? episode.chapters[selectedChapterIndex]
+					: undefined;
+			share(buildEpisodeUrl(slug, chapter?.startTime));
+			return;
+		}
+
+		// Chapters tab: j/k to select a chapter (y shares it)
+		if (currentKey === 'chapters') {
+			if (input === 'j' || key.downArrow) {
+				setSelectedChapterIndex((i) =>
+					Math.min(i + 1, episode.chapters.length - 1),
+				);
+				return;
+			} else if (input === 'k' || key.upArrow) {
+				setSelectedChapterIndex((i) => Math.max(i - 1, 0));
+				return;
+			}
+		}
 
 		// Info tab: j/k to navigate tags, enter to filter by tag
 		if (currentKey === 'info' && episode.tags.length > 0) {
@@ -92,7 +131,9 @@ export function EpisodeDetailScreen() {
 				setSelectedLinkIndex((i) => Math.max(i - 1, 0));
 				return;
 			} else if (input === 'o' && episode.links[selectedLinkIndex]) {
-				openUrl(episode.links[selectedLinkIndex]!.url);
+				const url = episode.links[selectedLinkIndex]!.url;
+				if (url) openUrl(url);
+				else showFlash('Deze link heeft geen URL', 'error');
 				return;
 			}
 		}
@@ -137,19 +178,25 @@ export function EpisodeDetailScreen() {
 			setSelectedPersonIndex(0);
 			setSelectedTagIndex(0);
 			setSelectedPlatformIndex(0);
+			setSelectedChapterIndex(0);
 		} else if (input === 'h' || key.leftArrow) {
 			setActiveSection((i) => Math.max(i - 1, 0));
 			setSelectedLinkIndex(0);
 			setSelectedPersonIndex(0);
 			setSelectedTagIndex(0);
 			setSelectedPlatformIndex(0);
+			setSelectedChapterIndex(0);
 		} else if (input === 't' && episode.hasTranscript) {
 			navigate('transcript', { slug, title: episode.title });
 		} else if (input === 'a') {
+			if (!episode.audioUrl) {
+				showFlash(NO_AUDIO_MESSAGE, 'error', 3000);
+				return;
+			}
 			player.addToQueue({
 				slug,
 				title: episode.title,
-				durationSeconds: episode.durationSeconds,
+				durationSeconds: episode.durationSeconds ?? 0,
 				audioUrl: episode.audioUrl,
 			});
 		} else if (input === 'b') {
@@ -158,35 +205,22 @@ export function EpisodeDetailScreen() {
 				episode.title,
 				episode.seasonNumber,
 				episode.episodeNumber,
+				episode.episodeType,
 			);
 		} else if (input === 'p') {
 			if (player.currentEpisodeSlug === slug && isActive()) {
 				stopPlayer();
 				player.stop();
 			} else {
-				// Check for resume position before starting playback
-				const entry = getHistoryEntry(slug);
-				const resumePos =
-					entry &&
-					!entry.completed &&
-					entry.position > 10 &&
-					entry.position < entry.duration - 60
-						? entry.position
-						: 0;
-
-				player.setPlaying(slug, episode.title, episode.durationSeconds);
-				player.setChapters(
-					episode.chapters.map((c) => ({
-						title: c.title,
-						startTime: c.startTime,
-					})),
-				);
-				play(episode.audioUrl, resumePos).then(() => {
-					if (resumePos > 0) {
-						setResumeMessage(
-							`Hervat bij ${formatDuration(resumePos)}`,
+				startEpisodePlayback(episode, { startAt: 'resume' }).then((res) => {
+					if (!res.ok) {
+						showFlash(res.message, 'error', 3000);
+					} else if (res.startAt > 0) {
+						showFlash(
+							`Hervat bij ${formatDuration(res.startAt)}`,
+							'success',
+							3000,
 						);
-						setTimeout(() => setResumeMessage(null), 3000);
 					}
 				});
 			}
@@ -206,12 +240,12 @@ export function EpisodeDetailScreen() {
 			{/* Title block — always visible */}
 			<Box flexDirection="column" paddingY={1}>
 				<Box gap={1}>
-					<Text color={colors.purple} bold>
-						{formatEpisodeNumber(
-							episode.seasonNumber,
-							episode.episodeNumber,
-						)}
-					</Text>
+					<EpisodeLabel
+						seasonNumber={episode.seasonNumber}
+						episodeNumber={episode.episodeNumber}
+						episodeType={episode.episodeType}
+						bold
+					/>
 					<Text color={colors.cyan} bold>
 						{episode.title}
 					</Text>
@@ -222,12 +256,16 @@ export function EpisodeDetailScreen() {
 					)}
 				</Box>
 				<Box gap={2}>
-					<Text color={colors.textSubtle}>
-						{formatDate(episode.publishedAt)}
-					</Text>
-					<Text color={colors.textSubtle}>
-						{formatDuration(episode.durationSeconds)}
-					</Text>
+					{episode.publishedAt && (
+						<Text color={colors.textSubtle}>
+							{formatDate(episode.publishedAt)}
+						</Text>
+					)}
+					{episode.durationSeconds !== null && (
+						<Text color={colors.textSubtle}>
+							{formatDuration(episode.durationSeconds)}
+						</Text>
+					)}
 					{episode.explicit && <Text color={colors.warning}>E</Text>}
 				</Box>
 				{episode.tags.length > 0 && (
@@ -238,7 +276,7 @@ export function EpisodeDetailScreen() {
 								color={
 									i === selectedTagIndex && currentKey === 'info'
 										? colors.cyan
-										: colors.purple
+										: colors.coral
 								}
 								bold={i === selectedTagIndex && currentKey === 'info'}
 							>
@@ -249,11 +287,20 @@ export function EpisodeDetailScreen() {
 				)}
 			</Box>
 
-			{/* Resume message */}
-			{resumeMessage && (
+			{/* Status message (resume, errors, share) */}
+			{flash && (
 				<Box paddingBottom={1}>
-					<Text color={colors.success} bold>
-						{resumeMessage}
+					<Text
+						color={
+							flash.tone === 'error'
+								? colors.error
+								: flash.tone === 'success'
+									? colors.success
+									: colors.text
+						}
+						bold
+					>
+						{flash.text}
 					</Text>
 				</Box>
 			)}
@@ -262,7 +309,11 @@ export function EpisodeDetailScreen() {
 			<Box paddingBottom={1} gap={2}>
 				<Text color={colors.textSubtle}>
 					<Text color={colors.cyan}>p</Text>
-					{nowPlaying ? ' stop' : ' afspelen'}
+					{nowPlaying
+						? ' stop'
+						: episode.audioUrl
+							? ' afspelen'
+							: ' geen audio'}
 				</Text>
 				<Text color={colors.textSubtle}>
 					<Text color={colors.cyan}>a</Text> wachtrij
@@ -295,6 +346,10 @@ export function EpisodeDetailScreen() {
 							` (${player.playbackSpeed}x)`}
 					</Text>
 				)}
+				<Text color={colors.textSubtle}>
+					<Text color={colors.cyan}>y</Text>
+					{currentKey === 'chapters' ? ' deel hoofdstuk' : ' deel link'}
+				</Text>
 				{(currentKey === 'links' || currentKey === 'platforms') && (
 					<Text color={colors.textSubtle}>
 						<Text color={colors.cyan}>o</Text> openen
@@ -331,14 +386,25 @@ export function EpisodeDetailScreen() {
 
 			{currentKey === 'chapters' && (
 				<Box flexDirection="column">
-					{episode.chapters.map((ch, i) => (
-						<Box key={i} gap={1}>
-							<Text color={colors.purple}>
-								{formatDuration(ch.startTime)}
-							</Text>
-							<Text color={colors.text}>{ch.title}</Text>
-						</Box>
-					))}
+					{episode.chapters.map((ch, i) => {
+						const isSelected = i === selectedChapterIndex;
+						return (
+							<Box key={i} gap={1}>
+								<Text color={isSelected ? colors.cyan : colors.textSubtle}>
+									{isSelected ? '▸' : ' '}
+								</Text>
+								<Text color={colors.coral}>
+									{formatDuration(ch.startTime)}
+								</Text>
+								<Text
+									color={isSelected ? colors.cyan : colors.text}
+									bold={isSelected}
+								>
+									{ch.title}
+								</Text>
+							</Box>
+						);
+					})}
 				</Box>
 			)}
 
@@ -346,7 +412,7 @@ export function EpisodeDetailScreen() {
 				<Box flexDirection="column">
 					{episode.learningPoints.map((lp) => (
 						<Box key={lp.order} gap={1}>
-							<Text color={colors.purple}>{lp.order}.</Text>
+							<Text color={colors.coral}>{lp.order}.</Text>
 							<Text color={colors.textMuted}>{lp.content}</Text>
 						</Box>
 					))}
@@ -409,9 +475,16 @@ export function EpisodeDetailScreen() {
 								>
 									{link.title}
 								</Text>
-								<Text color={colors.textSubtle}>
-									{link.url}
-								</Text>
+								{link.personName && (
+									<Text color={colors.textMuted}>
+										· {link.personName}
+									</Text>
+								)}
+								{link.url && (
+									<Text color={colors.textSubtle}>
+										{link.url}
+									</Text>
+								)}
 							</Box>
 						);
 					})}
