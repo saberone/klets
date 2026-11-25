@@ -1,10 +1,29 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { connect, type Socket } from 'node:net';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { unlinkSync } from 'node:fs';
+import { privateTempPath } from '../utils/temp-dir.js';
 
-const SOCKET_PATH = join(tmpdir(), `klets-mpv-${process.pid}.sock`);
+/** mpv arguments; '--' ends the options so the URL is always read as a file. */
+export function mpvArgs(
+	url: string,
+	socketPath: string,
+	startSeconds = 0,
+): string[] {
+	return [
+		'--no-video',
+		'--really-quiet',
+		`--input-ipc-server=${socketPath}`,
+		...(startSeconds > 0 ? [`--start=${Math.floor(startSeconds)}`] : []),
+		'--',
+		url,
+	];
+}
+
+let socketPath: string | null = null;
+function getSocketPath(): string {
+	socketPath ??= privateTempPath('mpv.sock');
+	return socketPath;
+}
 
 let proc: ChildProcess | null = null;
 let socket: Socket | null = null;
@@ -16,23 +35,17 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 export function startMpv(url: string, startSeconds = 0): boolean {
 	stopMpv();
 
+	const path = getSocketPath();
 	try {
-		unlinkSync(SOCKET_PATH);
+		unlinkSync(path);
 	} catch {
 		// ignore
 	}
 
-	proc = spawn(
-		'mpv',
-		[
-			'--no-video',
-			'--really-quiet',
-			`--input-ipc-server=${SOCKET_PATH}`,
-			...(startSeconds > 0 ? [`--start=${Math.floor(startSeconds)}`] : []),
-			url,
-		],
-		{ stdio: 'ignore', detached: false },
-	);
+	proc = spawn('mpv', mpvArgs(url, path, startSeconds), {
+		stdio: 'ignore',
+		detached: false,
+	});
 
 	proc.on('error', () => {
 		cleanup();
@@ -50,7 +63,7 @@ export function startMpv(url: string, startSeconds = 0): boolean {
 function connectSocket() {
 	if (!proc || proc.exitCode !== null) return;
 
-	socket = connect(SOCKET_PATH);
+	socket = connect(getSocketPath());
 
 	socket.on('error', () => {
 		socket = null;
@@ -130,10 +143,12 @@ export function stopMpv(): void {
 	}
 	positionSeconds = 0;
 	durationSeconds = 0;
-	try {
-		unlinkSync(SOCKET_PATH);
-	} catch {
-		// ignore
+	if (socketPath) {
+		try {
+			unlinkSync(socketPath);
+		} catch {
+			// ignore
+		}
 	}
 }
 

@@ -1,4 +1,5 @@
 import got from 'got';
+import { parseCleanJson } from '../utils/clean-text.js';
 
 const BASE =
 	process.env['CODEKLETS_API_URL']?.replace('/api/v1', '') ||
@@ -23,7 +24,10 @@ export interface Quote {
 export async function getRandomQuote(): Promise<Quote | null> {
 	try {
 		const data = await got
-			.get(`${BASE}/api/easter-egg/quotes`, { timeout: { request: 3000 } })
+			.get(`${BASE}/api/easter-egg/quotes`, {
+				timeout: { request: 3000 },
+				parseJson: parseCleanJson,
+			})
 			.json<QuotesResponse>();
 
 		const allQuotes: Quote[] = data.characters.flatMap((c) =>

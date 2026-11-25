@@ -4,7 +4,8 @@ import { colors } from '../theme/colors.js';
 import { useNavigation } from '../hooks/use-navigation.js';
 import { useApi } from '../hooks/use-api.js';
 import { getPerson } from '../api/persons.js';
-import { openUrl } from '../utils/open-url.js';
+import { openUrl, LINK_REFUSED_MESSAGE } from '../utils/open-url.js';
+import { useFlashMessage } from '../hooks/use-flash-message.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { EpisodeCard } from '../components/episode-card.js';
 import { Loading } from '../components/loading.js';
@@ -19,6 +20,7 @@ export function PersonDetailScreen() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
 	const [activeSection, setActiveSection] = useState<Section | null>(null);
+	const [flash, showFlash] = useFlashMessage();
 
 	const fetcher = useCallback(() => getPerson(id), [id]);
 	const { data, loading, error, refetch } = useApi<
@@ -86,7 +88,9 @@ export function PersonDetailScreen() {
 				(input === 'o' || key.return) &&
 				links[selectedLinkIndex]
 			) {
-				openUrl(links[selectedLinkIndex]![1]);
+				if (!openUrl(links[selectedLinkIndex]![1])) {
+					showFlash(LINK_REFUSED_MESSAGE, 'error', 3000);
+				}
 			}
 			return;
 		}
@@ -187,6 +191,18 @@ export function PersonDetailScreen() {
 							</Box>
 						);
 					})}
+					{flash && (
+						<Box paddingTop={1}>
+							<Text
+								color={
+									flash.tone === 'error' ? colors.error : colors.text
+								}
+								bold
+							>
+								{flash.text}
+							</Text>
+						</Box>
+					)}
 					<Box paddingTop={1}>
 						<Text color={colors.textSubtle}>
 							<Text color={colors.cyan}>o</Text> openen

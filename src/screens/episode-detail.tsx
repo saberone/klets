@@ -13,7 +13,7 @@ import { useFlashMessage } from '../hooks/use-flash-message.js';
 import { EpisodeLabel } from '../components/episode-label.js';
 import { useShareLink } from '../hooks/use-share-link.js';
 import { buildEpisodeUrl } from '../utils/share-url.js';
-import { openUrl } from '../utils/open-url.js';
+import { openUrl, LINK_REFUSED_MESSAGE } from '../utils/open-url.js';
 import { useStore } from '../store/index.js';
 import { ScreenContainer } from '../components/screen-container.js';
 import { Loading } from '../components/loading.js';
@@ -132,8 +132,8 @@ export function EpisodeDetailScreen() {
 				return;
 			} else if (input === 'o' && episode.links[selectedLinkIndex]) {
 				const url = episode.links[selectedLinkIndex]!.url;
-				if (url) openUrl(url);
-				else showFlash('Deze link heeft geen URL', 'error');
+				if (!url) showFlash('Deze link heeft geen URL', 'error');
+				else if (!openUrl(url)) showFlash(LINK_REFUSED_MESSAGE, 'error', 3000);
 				return;
 			}
 		}
@@ -167,7 +167,9 @@ export function EpisodeDetailScreen() {
 				setSelectedPlatformIndex((i) => Math.max(i - 1, 0));
 				return;
 			} else if (input === 'o' && episode.platformLinks[selectedPlatformIndex]) {
-				openUrl(episode.platformLinks[selectedPlatformIndex]!.url);
+				if (!openUrl(episode.platformLinks[selectedPlatformIndex]!.url)) {
+					showFlash(LINK_REFUSED_MESSAGE, 'error', 3000);
+				}
 				return;
 			}
 		}

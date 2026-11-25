@@ -12,6 +12,7 @@ import {
 import * as kletsAudioBackend from './backends/klets-audio.js';
 import * as pcmPipeBackend from './backends/pcm-pipe.js';
 import * as commandBackend from './backends/command.js';
+import { toWebUrl } from '../utils/web-url.js';
 
 let detectedBackend: Backend | null | undefined = undefined;
 let activeBackend: Backend | null = null;
@@ -29,13 +30,16 @@ export async function play(
 	audioUrl: string,
 	startSeconds = 0,
 ): Promise<boolean> {
+	// Only web links (http/https) are played
+	const url = toWebUrl(audioUrl);
+	if (!url) return false;
+
 	if (detectedBackend === undefined) await initBackend();
 	const backend = detectedBackend;
 	if (!backend) return false;
 
 	stop();
 	activeBackend = backend;
-	const url = audioUrl;
 
 	switch (backend) {
 		case 'klets-audio':

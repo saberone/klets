@@ -1,11 +1,28 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { connect, type Socket } from 'node:net';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { posix, win32 } from 'node:path';
 import { unlinkSync, readFileSync, chmodSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { privateTempPath } from '../../utils/temp-dir.js';
 
-const SOCKET_PATH = join(tmpdir(), `klets-audio-${process.pid}.sock`);
+let socketPath: string | null = null;
+function getSocketPath(): string {
+	socketPath ??= privateTempPath('audio.sock');
+	return socketPath;
+}
+
+/**
+ * Path of the klets-audio binary inside its platform package, given the
+ * resolved path of that package's package.json.
+ */
+export function binaryPathFromPackageJson(
+	pkgJsonPath: string,
+	platform: NodeJS.Platform,
+): string {
+	const path = platform === 'win32' ? win32 : posix;
+	const ext = platform === 'win32' ? '.exe' : '';
+	return path.join(path.dirname(pkgJsonPath), 'bin', `klets-audio${ext}`);
+}
 
 let proc: ChildProcess | null = null;
 let socket: Socket | null = null;
@@ -42,9 +59,7 @@ function resolveBinary(): string | null {
 	try {
 		const require = createRequire(import.meta.url);
 		const pkgJson = require.resolve(`${pkgName}/package.json`);
-		const pkgDir = pkgJson.replace(/\/package\.json$/, '');
-		const ext = platform === 'win32' ? '.exe' : '';
-		const binPath = join(pkgDir, `bin/klets-audio${ext}`);
+		const binPath = binaryPathFromPackageJson(pkgJson, platform);
 		// Ensure the binary is executable (npm may not preserve permissions)
 		if (platform !== 'win32') {
 			try { chmodSync(binPath, 0o755); } catch { /* ignore */ }
@@ -71,13 +86,14 @@ export function play(url: string, startSeconds = 0): boolean {
 	if (!binary) return false;
 	cachedBinary = binary;
 
+	const path = getSocketPath();
 	try {
-		unlinkSync(SOCKET_PATH);
+		unlinkSync(path);
 	} catch {
 		// ignore
 	}
 
-	proc = spawn(binary, ['--socket', SOCKET_PATH], {
+	proc = spawn(binary, ['--socket', path], {
 		stdio: 'ignore',
 		detached: false,
 	});
@@ -107,7 +123,7 @@ function connectSocket(onConnect?: () => void) {
 	if (process.platform === 'win32') {
 		// On Windows, klets-audio writes a TCP port to the socket file
 		try {
-			const port = parseInt(readFileSync(SOCKET_PATH, 'utf-8').trim(), 10);
+			const port = parseInt(readFileSync(getSocketPath(), 'utf-8').trim(), 10);
 			socket = connect({ port, host: '127.0.0.1' });
 		} catch {
 			// Port file not ready yet — retry
@@ -117,7 +133,7 @@ function connectSocket(onConnect?: () => void) {
 			return;
 		}
 	} else {
-		socket = connect(SOCKET_PATH);
+		socket = connect(getSocketPath());
 	}
 
 	socket.on('connect', () => {
@@ -183,10 +199,12 @@ export function stop(): void {
 	active = false;
 	positionSeconds = 0;
 	durationSeconds = 0;
-	try {
-		unlinkSync(SOCKET_PATH);
-	} catch {
-		// ignore
+	if (socketPath) {
+		try {
+			unlinkSync(socketPath);
+		} catch {
+			// ignore
+		}
 	}
 }
 

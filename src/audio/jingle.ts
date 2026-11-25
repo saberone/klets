@@ -1,7 +1,6 @@
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { privateTempPath } from '../utils/temp-dir.js';
 import { commandExists } from '../player/detect.js';
 
 const SAMPLE_RATE = 11025;
@@ -212,7 +211,7 @@ export async function playJingle(): Promise<void> {
 		const player = detectJinglePlayer();
 		if (!player) return;
 
-		const wavPath = join(tmpdir(), 'klets-jingle.wav');
+		const wavPath = privateTempPath('jingle.wav');
 		const wav = generateJingle();
 		writeFileSync(wavPath, wav);
 

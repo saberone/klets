@@ -24,6 +24,6 @@ export function flattenTopicDetail(raw: TopicDetailRaw): SingleResponse<TopicDet
 }
 
 export async function getTopic(slug: string): Promise<SingleResponse<TopicDetail>> {
-	const raw = await api.get(`topics/${slug}`).json<TopicDetailRaw>();
+	const raw = await api.get(`topics/${encodeURIComponent(slug)}`).json<TopicDetailRaw>();
 	return flattenTopicDetail(raw);
 }

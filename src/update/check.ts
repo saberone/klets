@@ -1,16 +1,21 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
 import got from 'got';
 import { VERSION } from '../version.js';
+import { loadJson, saveJson } from '../utils/persistence.js';
 
-const CACHE_DIR = join(homedir(), '.config', 'klets');
-const CACHE_FILE = join(CACHE_DIR, 'update-check.json');
+const CACHE_FILE = 'update-check.json';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CacheData {
 	latestVersion: string;
 	checkedAt: number;
+}
+
+const SEMVER =
+	/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+/** Only a version that matches the semver pattern is shown or stored. */
+export function isValidVersion(value: unknown): value is string {
+	return typeof value === 'string' && value.length <= 256 && SEMVER.test(value);
 }
 
 export function isNewerVersion(current: string, latest: string): boolean {
@@ -23,26 +28,21 @@ export function isNewerVersion(current: string, latest: string): boolean {
 }
 
 async function readCache(): Promise<CacheData | null> {
-	try {
-		const raw = await readFile(CACHE_FILE, 'utf-8');
-		const data = JSON.parse(raw) as CacheData;
-		if (Date.now() - data.checkedAt < CACHE_TTL_MS) {
-			return data;
-		}
-	} catch {
-		// Cache missing or corrupt — ignore
+	const data = await loadJson<Partial<CacheData>>(CACHE_FILE);
+	if (
+		data &&
+		isValidVersion(data.latestVersion) &&
+		typeof data.checkedAt === 'number' &&
+		Date.now() - data.checkedAt < CACHE_TTL_MS
+	) {
+		return { latestVersion: data.latestVersion, checkedAt: data.checkedAt };
 	}
 	return null;
 }
 
 async function writeCache(latestVersion: string): Promise<void> {
-	try {
-		await mkdir(CACHE_DIR, { recursive: true });
-		const data: CacheData = { latestVersion, checkedAt: Date.now() };
-		await writeFile(CACHE_FILE, JSON.stringify(data), 'utf-8');
-	} catch {
-		// No write permission — ignore
-	}
+	const data: CacheData = { latestVersion, checkedAt: Date.now() };
+	await saveJson(CACHE_FILE, data);
 }
 
 interface UpdateCheckResult {
@@ -68,9 +68,12 @@ export async function checkForUpdate(): Promise<UpdateCheckResult> {
 	const response = await got('https://registry.npmjs.org/klets/latest', {
 		timeout: { request: 5_000 },
 		retry: { limit: 0 },
-	}).json<{ version: string }>();
+	}).json<{ version?: unknown }>();
 
-	const latestVersion = response.version;
+	const latestVersion = response?.version;
+	if (!isValidVersion(latestVersion)) {
+		throw new Error('Ongeldige versie ontvangen van npm');
+	}
 	await writeCache(latestVersion);
 
 	return {
